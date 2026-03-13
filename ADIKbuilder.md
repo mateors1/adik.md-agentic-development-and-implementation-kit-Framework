@@ -50,7 +50,29 @@ adik-bundle/
     └── adik-mcp-server.md
 ```
 
-`ADIKbuilder.md` and `ADIKBuilderExample.md` are **never** included in the bundle.
+`ADIKbuilder.md`, `docs/`, `CLAUDE.md`, `agents.md`, and `.github/` are **never** included in the bundle. `ADIK.md` handles self-embedding into the target project's `CLAUDE.md`, `agents.md`, and `.github/copilot-instructions.md` during its first run.
+
+---
+
+## Source Repository Self-Embedding
+
+`ADIKbuilder.md` and `ADIK.md` must be reflected in the source repository's own agentic context files. When either file is modified, verify that the following files in this source repository remain current:
+
+| File | Purpose |
+|---|---|
+| `.github/copilot-instructions.md` | GitHub Copilot context for this source repository |
+| `CLAUDE.md` | Claude session context for this source repository |
+| `agents.md` | Agent and skill registry for agentic sessions in this source repository |
+
+These files must reference both `ADIKbuilder.md` and `ADIK.md` so that any AI assistant working in the source repository understands the two-orchestrator model and the deployable bundle boundaries.
+
+**Verification checklist (run after any change to `ADIK.md` or `ADIKbuilder.md`):**
+
+- [ ] `.github/copilot-instructions.md` mentions both `ADIK.md` and `ADIKbuilder.md` and their respective roles.
+- [ ] `CLAUDE.md` contains an up-to-date executive summary and the correct file layout.
+- [ ] `agents.md` lists all current agents, skills, and the MCP server accurately.
+- [ ] `docs/manifesto.md` reflects the current principles.
+- [ ] `docs/examples/ADIKBuilderExample.md` is in sync with framework contract changes.
 
 ---
 
@@ -158,10 +180,17 @@ Each release is tagged `vX.Y.Z`. To add ADIK to a new repository:
 ```
 adik.md-agentic-development-and-implementation-kit/
 ├── ADIKbuilder.md                   ← this file (source-repo orchestrator, not deployed)
-├── ADIKBuilderExample.md            ← self-sufficient guide for building your own ADIK (not deployed)
 ├── ADIK.md                          ← implementation orchestrator (deployed to target repos)
 ├── Registry.md                      ← DRY symbol registry template
 ├── README.md                        ← manifesto + dual-audience guide
+├── CLAUDE.md                        ← Claude session context (source repo only)
+├── agents.md                        ← agent/skill registry for agentic sessions (source repo only)
+├── .github/
+│   └── copilot-instructions.md      ← GitHub Copilot context (source repo only)
+├── docs/
+│   ├── manifesto.md                 ← ADIK philosophy and principles
+│   └── examples/
+│       └── ADIKBuilderExample.md    ← self-sufficient guide for building your own ADIK (not deployed)
 ├── agents/
 │   ├── builder.agent.md
 │   └── codebase-analyst.agent.md
@@ -179,10 +208,12 @@ adik.md-agentic-development-and-implementation-kit/
 
 - **ADIKbuilder.md is never deployed.** It lives only in this source repository and must not be included in any bundle distributed to target repositories.
 - **ADIKBuilderExample.md is never deployed.** It is a guide for developers who want to build their own ADIK; it is not part of the operational framework.
+- **Source-only context files are never deployed.** `CLAUDE.md`, `agents.md`, `.github/copilot-instructions.md`, and `docs/` are source repository files; they are not part of the deployable bundle. `ADIK.md` creates equivalent files in target repositories during its first run.
 - **ADIK.md is the contract.** When `ADIK.md` changes in a backward-incompatible way, consumers must be notified via a version bump.
 - **Every agent and skill file must be independently readable.** Each file must be fully actionable by an LLM agent without loading the entire repository.
 - **The Registry format is stable.** Breaking changes to the registry schema require a major version bump.
 - **Vectorization stays in the subskill.** `skills/vectorize.skill.md` is the only file that may contain embedding or vector-store logic.
+- **Self-embedding is bidirectional.** `ADIK.md` embeds itself into target projects; `ADIKbuilder.md` maintains the source repository's own context files (`CLAUDE.md`, `agents.md`, `.github/copilot-instructions.md`).
 
 ---
 
@@ -191,9 +222,13 @@ adik.md-agentic-development-and-implementation-kit/
 | File | Role |
 |---|---|
 | `ADIK.md` | Implementation orchestrator — deployed to target repositories |
-| `ADIKBuilderExample.md` | Step-by-step guide for building a custom ADIK implementation |
+| `docs/examples/ADIKBuilderExample.md` | Step-by-step guide for building a custom ADIK implementation |
 | `Registry.md` | Symbol registry template |
 | `README.md` | Manifesto + dual-audience guide |
+| `CLAUDE.md` | Claude session context for this source repository |
+| `agents.md` | Agent and skill registry for agentic sessions in this source repository |
+| `.github/copilot-instructions.md` | GitHub Copilot context for this source repository |
+| `docs/manifesto.md` | ADIK philosophy and principles |
 | `agents/builder.agent.md` | SDK builder agent |
 | `agents/codebase-analyst.agent.md` | Codebase analysis + frameworkHints inference + dev-state check |
 | `skills/sdk-builder.skill.md` | SDK code-generation skill |
