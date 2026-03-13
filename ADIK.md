@@ -19,84 +19,77 @@ ADIK.md is responsible for:
 5. **Producing consumption artifacts** (classes, serialization helpers, boilerplate) for downstream consumers.
 6. **Exposing an MCP server** so the ADIK can be driven from any agentic environment in the target codebase.
 7. **Integrating cleanly with the host repository's `agents.md`** so all context and skills persist.
-8. **Leveraging vector capabilities** — when the target environment provides a vector database or RAG pipeline, ADIK uses vectorized representations of `Registry.md` and the codebase for faster, richer symbol navigation and semantic retrieval.
+8. **Inferring framework hints** — automatically detects the target frameworks in use (React, NestJS, FastAPI, ASP.NET, etc.) from `architecture.md`, package manifests, and existing agent/skill files, so SDK boilerplate is framework-idiomatic without manual configuration.
+9. **Preventing crosstailing** — records a development-state snapshot before each run to detect stale artifacts and config drift from prior runs.
+10. **Leveraging vector capabilities** — when the target environment provides a vector database or RAG pipeline, ADIK delegates all vectorization work to `skills/vectorize.skill.md` so the orchestrator remains lean.
 
 > **See also:** `ADIKbuilder.md` in the ADIK source repository governs the development and release of the ADIK framework itself. It is not part of this deployable bundle.
 
 ---
 
+## Framework Hints Inference
+
+When `frameworkHints` are not explicitly provided, ADIK instructs the Codebase Analyst Agent to infer them automatically before SDK generation begins:
+
+| Signal Source | Examples Detected |
+|---|---|
+| `architecture.md` (repo root or `docs/`) | "React", "NestJS", "FastAPI", "ASP.NET" in tech-stack sections |
+| `package.json` dependencies | `react`, `@nestjs/core`, `express`, `fastify`, `vue`, `@angular/core` |
+| `pyproject.toml` / `requirements.txt` | `fastapi`, `flask`, `django`, `starlette` |
+| `*.csproj` PackageReference | `Microsoft.AspNetCore.*`, Blazor, Hangfire |
+| Existing `agents/*.md` / `skills/*.md` | `framework:` or `frameworkHints:` front-matter |
+
+Inferred hints are recorded in `adik.env.json` under `frameworkHints` and passed to the SDK Consumer Skill. If no signal is found, the Consumer Skill generates generic, framework-neutral boilerplate.
+
+---
+
+## Development State and Crosstailing Prevention
+
+Before each run, ADIK records a development-state snapshot to detect drift from previous runs:
+
+```
+COMPARE current config against previous adik.env.json:
+  → Warn if sdkLanguages changed (stale SDK directories may exist)
+  → Warn if includePatterns changed (registry may have orphaned entries)
+  → List stale sdk/<language>/ directories in adik.env.json.staleArtifacts
+  → Record runAgents, runSkills, runConfig, runTimestamp in adik.env.json
+```
+
+This prevents **crosstailing** — the accumulation of inconsistent artifacts from overlapping or divergent ADIK runs. Stale artifacts are reported but never auto-deleted; the developer decides when to clean them.
+
+---
+
 ## Vector and RAG Support
 
-### Overview
+ADIK supports vector-based Registry and codebase navigation when the deployment environment provides a vector database or RAG pipeline. All embedding, chunking, and vector-store interactions are handled exclusively by `skills/vectorize.skill.md` — keeping this orchestrator and all agent files free of vector-store specifics.
 
-ADIK supports two navigation modes for `Registry.md` and the codebase:
+### Navigation Modes
 
 | Mode | When Used | Description |
 |---|---|---|
 | **Document** (default) | Always available | Agents parse `Registry.md` as plain Markdown |
-| **Vector** (preferred) | When vector DB or RAG is detected | Agents query embedded representations for semantic, cross-reference-aware retrieval |
+| **Vector** (preferred) | When vector DB or RAG is detected | Agents query embedded representations via the Vectorize Skill |
 
 ### Bundle Vector Status
 
 ```yaml
 # Corresponds to adik.config.json → vectors.bundled
 vectors.bundled: false
-# Set to true if this ADIK bundle was distributed with pre-computed vector embeddings
-# for Registry.md and the codebase.
-# When true, embedding files are located at vectors/registry.vec and
-# vectors/codebase.vec relative to this file.
+# Set to true if this ADIK bundle was distributed with pre-computed vector embeddings.
+# When true, embedding files are located at vectors/registry.vec and vectors/codebase.vec.
 ```
 
 ### Environment Detection
 
-At startup, ADIK.md instructs the Codebase Analyst Agent to probe the target environment for vector capabilities:
-
-```
-IF vectors/ directory exists AND vectors.bundled = true
-  → USE bundled embeddings for Registry and codebase navigation
-
-ELSE IF environment exposes a vector DB or RAG endpoint
-  (detected via: VECTOR_DB_URL env var / OPENAI_API_KEY with embeddings config /
-   presence of config files for Chroma, Pinecone, Weaviate, Qdrant, pgvector, or
-   Redis Stack — see agents/codebase-analyst.agent.md for the full probe rules)
-  → VECTORIZE Registry.md and codebase on first run
-  → STORE embeddings in vectors/ directory
-  → USE vector search for all subsequent Registry lookups
-
-ELSE
-  → USE document mode (plain Markdown parsing)
-```
+At startup, the Codebase Analyst Agent probes for vector capabilities (VECTOR_DB_URL, OPENAI_API_KEY, Chroma, Pinecone, Weaviate, Qdrant, pgvector, Redis Stack) and writes the result to `adik.env.json`. If active, it delegates to `skills/vectorize.skill.md`. Full probe rules are in `agents/codebase-analyst.agent.md`.
 
 ### Vector Usage by Agents
 
 When vector mode is active:
 
-- The **Codebase Analyst Agent** uses semantic search to identify related symbols and detect drift across large codebases more accurately than line-by-line diffing.
-- The **Builder Agent** queries the vectorized Registry to resolve type dependencies and cross-references without full-document parsing.
+- The **Codebase Analyst Agent** delegates to `skills/vectorize.skill.md` after populating `Registry.md`.
+- The **Builder Agent** queries the vectorized Registry to resolve type dependencies semantically.
 - The **MCP Server** exposes an additional `adik_vector_search` tool for semantic symbol lookup.
-
-### Vectorization of Registry.md
-
-When a vector DB is available, the Registry is vectorized incrementally on each write:
-
-```
-ON Registry.md write:
-  1. Embed each symbol entry as a document chunk (id + kind + name + signature + description).
-  2. Upsert the embedding into the vector store, keyed by the symbol's stable `id`.
-  3. Record the vector store URI in Registry.md Project Metadata under `vectorStoreUri`.
-```
-
-### Vectorization of the Codebase
-
-When a vector DB is available, source files are vectorized to support semantic codebase navigation:
-
-```
-ON first run OR diff-and-update:
-  1. Chunk source files by logical unit (function body, class definition, module).
-  2. Embed each chunk.
-  3. Upsert into the vector store, keyed by file path + chunk index.
-  4. Record the vector store URI in adik.config.json under vectors.storeUri.
-```
 
 ---
 
@@ -119,13 +112,15 @@ The detected type is recorded in `Registry.md` under `## Project Metadata` and g
 ```
 ADIK.md
   │
-  ├─► [0] Environment Probe           → detect vector DB / RAG capabilities
+  ├─► [0] Codebase Analyst Agent      → probe env, infer frameworkHints, check dev state
   │         (agents/codebase-analyst.agent.md)
   │         output: adik.env.json
+  │         │
+  │         └── [opt] Vectorize Skill → embed Registry + codebase (if vector env active)
+  │                   (skills/vectorize.skill.md)
   │
-  ├─► [1] Codebase Analyst Agent      → analyses repo, populates Registry.md
+  ├─► [1] Codebase Analyst Agent      → analyse repo, populate Registry.md
   │         (agents/codebase-analyst.agent.md)
-  │         └── [opt] Vectorize Registry.md and codebase if vector env detected
   │
   ├─► [2] Builder Agent               → reads Registry.md, delegates to skills
   │         (agents/builder.agent.md)
@@ -135,23 +130,27 @@ ADIK.md
   │         │
   │         └─► SDK Consumer Skill    → emits boilerplate, classes, serializers
   │               (skills/sdk-consumer.skill.md)
+  │               (uses inferred frameworkHints from adik.env.json)
   │
   └─► [3] MCP Server                  → exposes ADIK capabilities to external agents
             (mcp/adik-mcp-server.md)
 ```
 
-### Step 0 — Environment Probe (Vector Detection)
+### Step 0 — Environment Probe, Framework Inference, and Dev-State Check
 
-Before any analysis begins, probe the environment for vector capabilities:
+Before any analysis begins, the Codebase Analyst Agent probes the environment, infers framework hints, and validates the development state:
 
 ```
 @agent codebase-analyst
 task: probe-environment
-checks: [vector-db, rag-pipeline, embeddings-config]
+checks: [vector-db, rag-pipeline, embeddings-config, framework-hints, dev-state]
 output: adik.env.json
 ```
 
-The result is written to `adik.env.json` and referenced throughout the pipeline. If a vector DB or RAG endpoint is detected, all subsequent steps prefer vector-based retrieval over plain-document parsing.
+The result is written to `adik.env.json` and referenced throughout the pipeline:
+- **`vectorMode`** — whether to activate the Vectorize Skill after analysis.
+- **`frameworkHints`** — inferred target frameworks for the SDK Consumer Skill.
+- **`staleArtifacts`** — any SDK directories or registry entries that conflict with the current config.
 
 ### Step 1 — Codebase Analysis
 
@@ -162,10 +161,9 @@ Invoke the **Codebase Analyst Agent**:
 task: analyse-and-register
 target: <path-to-source-repo>
 output: Registry.md
-vectorize: <from adik.env.json>
 ```
 
-The agent scans all source files, identifies every public symbol (functions, classes, interfaces, schemas, enumerations, endpoints), and writes them to `Registry.md` in the canonical format. When vector mode is active, it also upserts embeddings for each symbol entry and each source file chunk.
+The agent scans all source files, identifies every public symbol (functions, classes, interfaces, schemas, enumerations, endpoints), and writes them to `Registry.md` in the canonical format. When `adik.env.json.vectorMode = "active"`, it invokes `skills/vectorize.skill.md` to embed and store all entries.
 
 ### Step 2 — SDK Generation
 
@@ -176,10 +174,9 @@ Invoke the **Builder Agent** once the registry is populated:
 task: build-sdk
 registry: Registry.md
 languages: [typescript, python, csharp]
-useVectors: <from adik.env.json>
 ```
 
-The builder delegates to `sdk-builder.skill.md` per language and `sdk-consumer.skill.md` for boilerplate. When vector mode is active, type resolution uses semantic vector search rather than full-document parsing.
+The builder reads `adik.env.json.frameworkHints` and passes them to `sdk-consumer.skill.md`. Explicit `frameworkHints` in the invocation always override inferred values.
 
 ### Step 3 — Continuous Sync
 
@@ -190,10 +187,9 @@ Every time new functionality is merged into the source repo, ADIK.md triggers a 
 task: diff-and-update
 since: <last-registry-commit-sha>
 output: Registry.md
-vectorize: <from adik.env.json>
 ```
 
-Only changed symbols trigger incremental SDK regeneration, keeping build times short. Changed embeddings are upserted incrementally.
+Only changed symbols trigger incremental SDK regeneration. Changed embeddings are upserted incrementally via the Vectorize Skill.
 
 ---
 
@@ -228,16 +224,17 @@ This ensures all ADIK agents and skills are available in any agentic session tha
 ├── ADIK.md                          ← this file (implementation orchestrator)
 ├── Registry.md                      ← DRY symbol registry
 ├── adik.config.json                 ← (optional) configuration
-├── adik.env.json                    ← (auto-generated) detected environment capabilities
+├── adik.env.json                    ← (auto-generated) env capabilities, frameworkHints, dev state
 ├── vectors/                         ← (optional) bundled or generated vector embeddings
-│   ├── registry.vec                 ← Registry embeddings (if vectorsBundled or generated)
-│   └── codebase.vec                 ← Codebase embeddings (if vectorsBundled or generated)
+│   ├── registry.vec                 ← Registry embeddings (NDJSON; see vectorize.skill.md)
+│   └── codebase.vec                 ← Codebase embeddings (NDJSON; see vectorize.skill.md)
 ├── agents/
 │   ├── builder.agent.md             ← SDK builder agent
-│   └── codebase-analyst.agent.md   ← codebase analysis subagent
+│   └── codebase-analyst.agent.md   ← codebase analysis + env probe + framework inference
 ├── skills/
 │   ├── sdk-builder.skill.md         ← SDK code-generation skill
-│   └── sdk-consumer.skill.md        ← consumption boilerplate skill
+│   ├── sdk-consumer.skill.md        ← consumption boilerplate skill
+│   └── vectorize.skill.md           ← vector embedding + upsert subskill (loaded on demand)
 └── mcp/
     └── adik-mcp-server.md           ← MCP server definition
 ```
@@ -282,6 +279,9 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
 - **The MCP server is optional.** Teams that do not need remote orchestration can omit the MCP component entirely.
 - **Vector mode degrades gracefully.** When no vector DB is available, ADIK falls back to document mode without loss of functionality.
 - **Vectors are never required.** All core ADIK functionality works in document mode. Vector mode is an optimisation for large codebases and environments that already invest in RAG infrastructure.
+- **Vectorization is a subskill.** All vector-store interactions are isolated in `skills/vectorize.skill.md`. The orchestrator and agents never contain embedding or chunking logic directly.
+- **frameworkHints are inferred, not required.** If the caller does not supply hints, the Codebase Analyst Agent infers them from `architecture.md`, package manifests, and existing agent/skill files.
+- **Crosstailing is prevented by state tracking.** Each run records a dev-state snapshot in `adik.env.json` so the next run can detect and report stale artifacts before writing anything.
 
 ---
 
@@ -291,10 +291,11 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
 |---|---|
 | `Registry.md` | Single source of truth for all exported symbols |
 | `adik.config.json` | Configuration including vector options |
-| `adik.env.json` | Auto-generated environment capability report |
-| `vectors/` | Bundled or generated vector embeddings (optional) |
+| `adik.env.json` | Auto-generated: env capabilities, inferred frameworkHints, dev-state snapshot |
+| `vectors/` | Bundled or generated vector embeddings (optional; managed by vectorize.skill.md) |
+| `agents/codebase-analyst.agent.md` | Env probe, framework inference, dev-state check, symbol analysis |
 | `agents/builder.agent.md` | Orchestrates SDK generation across languages |
-| `agents/codebase-analyst.agent.md` | Analyses source code and populates Registry |
 | `skills/sdk-builder.skill.md` | Generates SDK packages per language |
-| `skills/sdk-consumer.skill.md` | Generates consumption boilerplate |
+| `skills/sdk-consumer.skill.md` | Generates framework-idiomatic consumption boilerplate |
+| `skills/vectorize.skill.md` | Handles all vector embedding and upsert operations |
 | `mcp/adik-mcp-server.md` | MCP server for external agent integration |
