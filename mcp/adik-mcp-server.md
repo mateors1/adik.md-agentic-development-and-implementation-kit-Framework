@@ -208,6 +208,49 @@ Returns the most recent `sdk/BUILD_REPORT.md`.
 
 ---
 
+### `adik_vector_search`
+
+Performs a semantic similarity search over the vectorized Registry and codebase. Only available when vector mode is active (see `ADIK.md` — Vector and RAG Support).
+
+**Input schema:**
+
+```json
+{
+  "type": "object",
+  "required": ["query"],
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Natural-language or code-fragment query to search for semantically similar symbols or code chunks"
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["registry", "codebase", "all"],
+      "default": "all",
+      "description": "Whether to search the Registry embeddings, the codebase embeddings, or both"
+    },
+    "topK": {
+      "type": "integer",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Maximum number of results to return"
+    },
+    "filter": {
+      "type": "object",
+      "description": "Optional metadata filter (e.g. { \"kind\": \"endpoint\" } to restrict to endpoint symbols)",
+      "additionalProperties": true
+    }
+  }
+}
+```
+
+**Output:** JSON array of `{ "id": string, "kind": string, "name": string, "score": number, "excerpt": string }` ordered by descending similarity score.
+
+**Availability:** This tool is registered only when `adik.env.json` reports an active vector store. Calling it in document mode returns a `409 Conflict` error with the message `"Vector search is not available in this environment. Ensure a vector database is configured (via VECTOR_DB_URL or adik.config.json vectors.storeUri) or that bundled vectors are present in the vectors/ directory."`
+
+---
+
 ## Resources
 
 The MCP server exposes the following read-only resources:
@@ -218,6 +261,7 @@ The MCP server exposes the following read-only resources:
 | `adik://registry/{section}` | Single registry section (e.g. `adik://registry/endpoints`) |
 | `adik://sdk/build-report` | Most recent `sdk/BUILD_REPORT.md` |
 | `adik://config` | Current `adik.config.json` contents |
+| `adik://env` | Current `adik.env.json` contents (detected environment capabilities, including vector status) |
 
 ---
 
@@ -310,8 +354,9 @@ npx adik-mcp-server --transport http --port 3100 --registry ./Registry.md
 
 | File | Role |
 |---|---|
-| `ADIK.md` | Root orchestrator |
+| `ADIK.md` | Root orchestrator; defines vector detection and configuration |
 | `Registry.md` | Primary data source for the MCP server |
+| `adik.env.json` | Detected environment capabilities (governs `adik_vector_search` availability) |
 | `agents/builder.agent.md` | Agent triggered by `adik_build_sdk` tool |
 | `agents/codebase-analyst.agent.md` | Agent triggered by `adik_analyse_codebase` tool |
 | `skills/sdk-consumer.skill.md` | Skill triggered by `adik_scaffold_boilerplate` tool |

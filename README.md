@@ -4,6 +4,18 @@
 
 ---
 
+## Key Files
+
+| File | Role | Deployed to target repos? |
+|---|---|---|
+| `ADIKbuilder.md` | Source-repo orchestrator — governs the development and release of the ADIK framework itself | No |
+| `ADIK.md` | Implementation orchestrator — drives SDK generation in target repositories | Yes |
+| `Registry.md` | DRY symbol registry template | Yes |
+
+`ADIKbuilder.md` remains in this repository only. `ADIK.md` is the file that gets copied into every target codebase.
+
+---
+
 ## What ADIK Does
 
 1. **Analyses your codebase** — a dedicated Codebase Analyst Agent scans your source files, detects endpoints, classes, schemas, and exported functions, and writes everything to a structured `Registry.md` file.
@@ -17,7 +29,8 @@
 ## Repository Layout
 
 ```
-├── ADIK.md                          ← Root orchestrator (start here)
+├── ADIKbuilder.md                   ← Source-repo orchestrator (not deployed)
+├── ADIK.md                          ← Implementation orchestrator (start here for target repos)
 ├── Registry.md                      ← DRY symbol registry (single source of truth)
 ├── agents/
 │   ├── builder.agent.md             ← SDK builder agent
@@ -41,6 +54,8 @@ Copy the ADIK bundle into the root of the repository whose SDK you want to gener
 cp -r adik.md-bundle/* /path/to/your/source-repo/
 ```
 
+The bundle includes `ADIK.md` (implementation orchestrator), `Registry.md`, agents, skills, and the MCP server. `ADIKbuilder.md` is **not** included in the bundle.
+
 ### 2. (Optional) Create `adik.config.json`
 
 ```jsonc
@@ -48,11 +63,16 @@ cp -r adik.md-bundle/* /path/to/your/source-repo/
   "projectType": "auto",
   "sdkLanguages": ["typescript", "python", "csharp"],
   "outputDir": "./sdk",
-  "syncOnCommit": true
+  "syncOnCommit": true,
+  "vectors": {
+    "bundled": false,
+    "autoDetect": true,
+    "preferVectors": true
+  }
 }
 ```
 
-If omitted, ADIK uses sensible defaults and auto-detects the project type.
+If omitted, ADIK uses sensible defaults and auto-detects the project type and vector capabilities.
 
 ### 3. Run the Codebase Analyst Agent
 
@@ -63,7 +83,7 @@ target: ./src
 output: Registry.md
 ```
 
-This populates `Registry.md` with all discovered symbols.
+This populates `Registry.md` with all discovered symbols. If a vector DB is detected in the environment, the registry and codebase are also vectorized automatically.
 
 ### 4. Run the Builder Agent
 
@@ -90,7 +110,8 @@ Add the server to your MCP client config so any connected agent can query the re
 
 | File | Kind | Role |
 |---|---|---|
-| `ADIK.md` | Orchestrator | Drives the entire pipeline |
+| `ADIKbuilder.md` | Framework Orchestrator | Governs ADIK development and releases (source repo only) |
+| `ADIK.md` | Implementation Orchestrator | Drives the entire SDK generation pipeline in target repos |
 | `Registry.md` | Artifact | DRY single source of truth for all symbols |
 | `agents/builder.agent.md` | Agent | Generates SDK packages |
 | `agents/codebase-analyst.agent.md` | Agent | Analyses source and populates Registry |
@@ -118,6 +139,22 @@ The Registry uses annotated Markdown sections with `ADIK:<SECTION>:START` / `ADI
 
 ---
 
+## Vector and RAG Support
+
+ADIK can vectorize `Registry.md` and the target codebase when the deployment environment already uses a vector database or RAG pipeline. This enables semantic symbol lookup, richer cross-reference resolution, and faster incremental analysis on large codebases.
+
+### How It Works
+
+1. **Auto-detection** — on first run, ADIK probes the environment for a vector DB (Chroma, Pinecone, Weaviate, Qdrant, pgvector, etc.) or an embeddings-capable LLM provider.
+2. **Vectorization** — if a vector DB is found, every Registry symbol entry and source file chunk is embedded and stored.
+3. **Preference** — when `vectors.preferVectors: true` (the default), agents use semantic vector search over plain Markdown parsing whenever possible.
+4. **Bundled vectors** — ADIK bundles can optionally ship with pre-computed embeddings (`vectors/registry.vec`, `vectors/codebase.vec`). Set `vectors.bundled: true` in `adik.config.json` to use them. Bundled vector files are serialized in [NDJSON](https://ndjson.org/) format where each line is `{"id": "<symbol-id>", "model": "<embedding-model>", "vector": [<float>, ...]}`. Bundled vectors are model-specific and not portable across different embedding models.
+5. **Graceful degradation** — if no vector DB is available and no bundled vectors are present, ADIK falls back to document mode with no loss of functionality.
+
+See `ADIK.md` for the full vector detection logic and configuration options.
+
+---
+
 ## MCP Integration
 
 The ADIK MCP server exposes the following tools to connected agents:
@@ -130,6 +167,7 @@ The ADIK MCP server exposes the following tools to connected agents:
 | `adik_scaffold_boilerplate` | Generate consumption boilerplate |
 | `adik_get_symbol` | Look up a specific symbol |
 | `adik_get_build_report` | Retrieve the latest build report |
+| `adik_vector_search` | Semantic symbol search (available when vector mode is active) |
 
 See `mcp/adik-mcp-server.md` for the full tool schemas and configuration.
 
