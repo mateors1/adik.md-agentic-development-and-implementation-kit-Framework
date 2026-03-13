@@ -28,6 +28,10 @@ ADIK is built on four principles:
 | `docs/examples/ADIKBuilderExample.md` | Step-by-step guide to building your own ADIK implementation from scratch | No |
 | `docs/manifesto.md` | ADIK philosophy, principles, and the case for this standard | No |
 | `Registry.md` | DRY symbol registry template | Yes |
+| `LICENSE` | Dual license: CC BY 4.0 (Specification) + Apache 2.0 (Reference Implementation) | No |
+| `adik-lint.py` | ADIK specification linter — validates ADIK.md structural requirements | No |
+| `mkdocs.yml` | MkDocs configuration for the documentation site | No |
+| `requirements-docs.txt` | Python dependencies for building the documentation site | No |
 | `CLAUDE.md` | Claude session context for this source repository | No |
 | `agents.md` | Agent/skill registry for agentic sessions in this source repository | No |
 | `.github/copilot-instructions.md` | GitHub Copilot context for this source repository | No |
@@ -55,11 +59,18 @@ ADIK is built on four principles:
 ├── ADIKbuilder.md                   ← Source-repo orchestrator (not deployed)
 ├── ADIK.md                          ← Implementation orchestrator (deployed to target repos)
 ├── Registry.md                      ← DRY symbol registry (single source of truth)
+├── LICENSE                          ← Dual license: CC BY 4.0 (spec) + Apache 2.0 (impl)
+├── adik-lint.py                     ← ADIK specification linter
+├── mkdocs.yml                       ← MkDocs documentation site configuration
+├── requirements-docs.txt            ← MkDocs dependencies
 ├── CLAUDE.md                        ← Claude session context for this repository
 ├── agents.md                        ← Agent/skill registry for agentic sessions
 ├── .github/
-│   └── copilot-instructions.md      ← GitHub Copilot context for this repository
+│   ├── copilot-instructions.md      ← GitHub Copilot context for this repository
+│   └── workflows/
+│       └── docs.yml                 ← GitHub Pages docs deployment workflow
 ├── docs/
+│   ├── index.md                     ← Documentation site home page
 │   ├── manifesto.md                 ← ADIK philosophy and principles
 │   └── examples/
 │       └── ADIKBuilderExample.md    ← Guide for building your own ADIK from scratch
@@ -230,6 +241,53 @@ Want to implement the ADIK pattern from scratch, without using this repository? 
 - Applying the frameworkHints inference pattern
 - Applying the dev-state / crosstailing prevention pattern
 - A verification checklist before your first release
+
+---
+
+## Licensing
+
+ADIK uses a **dual-license model** to maximise adoption while protecting the integrity of the standard:
+
+| Component | License |
+|---|---|
+| **Specification** — `ADIK.md`, `ADIKbuilder.md`, `Registry.md`, `docs/` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| **Reference Implementation** — `agents/`, `skills/`, `mcp/`, `adik-lint.py` | [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
+
+The CC BY 4.0 license allows you to freely share, adapt, and build upon the specification for any purpose as long as you give appropriate credit. The Apache 2.0 license allows you to freely use, modify, and distribute the reference implementation, including in commercial products.
+
+See [`LICENSE`](LICENSE) for full terms.
+
+---
+
+## ADIK Linter
+
+The repository ships `adik-lint.py` — a lightweight Python script that validates the structural requirements of any ADIK implementation orchestrator:
+
+```bash
+python adik-lint.py [FILE]          # defaults to ADIK.md in the current directory
+```
+
+The linter checks for:
+
+- **Frontmatter** — `> **Version:**`, `> **Role:**`, `> **Scope:**` blockquotes within the first 20 lines
+- **Executive Summary** — a `## Executive Summary` section
+- **Reach of ADIK table** — a Markdown table within the `## Reach of ADIK` section
+- **Registry markers** — if any `ADIK:<SECTION>:START` markers are present, every START must have a matching END
+
+Exit code `0` means the file passes. Exit code `1` means one or more checks failed, with details printed to stdout.
+
+---
+
+## Documentation Site
+
+The ADIK documentation is automatically published to GitHub Pages from the `docs/` folder using [MkDocs Material](https://squidfunk.github.io/mkdocs-material/). The site is rebuilt on every push to `main` that touches `docs/`, `mkdocs.yml`, or `requirements-docs.txt`.
+
+To build the docs locally:
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve
+```
 
 ---
 
