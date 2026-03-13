@@ -25,10 +25,14 @@ ADIK is built on four principles:
 |---|---|---|
 | `ADIKbuilder.md` | Source-repo orchestrator — governs development and release of the ADIK framework | No |
 | `ADIK.md` | Implementation orchestrator — drives SDK generation in target repositories | Yes |
-| `ADIKBuilderExample.md` | Step-by-step guide to building your own ADIK implementation from scratch | No |
+| `docs/examples/ADIKBuilderExample.md` | Step-by-step guide to building your own ADIK implementation from scratch | No |
+| `docs/manifesto.md` | ADIK philosophy, principles, and the case for this standard | No |
 | `Registry.md` | DRY symbol registry template | Yes |
+| `CLAUDE.md` | Claude session context for this source repository | No |
+| `agents.md` | Agent/skill registry for agentic sessions in this source repository | No |
+| `.github/copilot-instructions.md` | GitHub Copilot context for this source repository | No |
 
-`ADIKbuilder.md` and `ADIKBuilderExample.md` remain in this repository only. `ADIK.md` is the file that gets copied into every target codebase.
+`ADIKbuilder.md`, `docs/`, `CLAUDE.md`, `agents.md`, and `.github/` remain in this repository only. `ADIK.md` is the file that gets copied into every target codebase. When deployed, `ADIK.md` automatically creates equivalent `CLAUDE.md`, `agents.md`, and `.github/copilot-instructions.md` files in the target project.
 
 ---
 
@@ -50,8 +54,15 @@ ADIK is built on four principles:
 ```
 ├── ADIKbuilder.md                   ← Source-repo orchestrator (not deployed)
 ├── ADIK.md                          ← Implementation orchestrator (deployed to target repos)
-├── ADIKBuilderExample.md            ← Guide for building your own ADIK from scratch
 ├── Registry.md                      ← DRY symbol registry (single source of truth)
+├── CLAUDE.md                        ← Claude session context for this repository
+├── agents.md                        ← Agent/skill registry for agentic sessions
+├── .github/
+│   └── copilot-instructions.md      ← GitHub Copilot context for this repository
+├── docs/
+│   ├── manifesto.md                 ← ADIK philosophy and principles
+│   └── examples/
+│       └── ADIKBuilderExample.md    ← Guide for building your own ADIK from scratch
 ├── agents/
 │   ├── builder.agent.md             ← SDK builder agent
 │   └── codebase-analyst.agent.md   ← Codebase analysis + env probe + frameworkHints inference
@@ -132,9 +143,13 @@ Add the server to your MCP client config so any connected agent can query the re
 | File | Kind | Role |
 |---|---|---|
 | `ADIKbuilder.md` | Framework Orchestrator | Governs ADIK development and releases (source repo only) |
-| `ADIKBuilderExample.md` | Scaffolding Guide | Step-by-step guide for building your own ADIK (source repo only) |
+| `docs/examples/ADIKBuilderExample.md` | Scaffolding Guide | Step-by-step guide for building your own ADIK (source repo only) |
+| `docs/manifesto.md` | Philosophy | ADIK principles and the case for this standard (source repo only) |
 | `ADIK.md` | Implementation Orchestrator | Drives the entire SDK generation pipeline in target repos |
 | `Registry.md` | Artifact | DRY single source of truth for all symbols |
+| `CLAUDE.md` | Context File | Claude session context (source repo) / created in target repo by ADIK.md |
+| `agents.md` | Context File | Agent/skill registry (source repo) / created in target repo by ADIK.md |
+| `.github/copilot-instructions.md` | Context File | Copilot context (source repo) / created in target repo by ADIK.md |
 | `agents/builder.agent.md` | Agent | Generates SDK packages |
 | `agents/codebase-analyst.agent.md` | Agent | Analyses source, infers frameworkHints, checks dev state |
 | `skills/sdk-builder.skill.md` | Skill | Emits TS / Python / C# SDK code |
@@ -206,7 +221,7 @@ See `mcp/adik-mcp-server.md` for the full tool schemas and configuration.
 
 ## Build Your Own ADIK
 
-Want to implement the ADIK pattern from scratch, without using this repository? See **[`ADIKBuilderExample.md`](ADIKBuilderExample.md)** for a complete, self-contained, step-by-step construction guide covering:
+Want to implement the ADIK pattern from scratch, without using this repository? See **[`docs/examples/ADIKBuilderExample.md`](docs/examples/ADIKBuilderExample.md)** for a complete, self-contained, step-by-step construction guide covering:
 
 - Building your own framework orchestrator (`MyADIKbuilder.md`)
 - Building the implementation orchestrator (`ADIK.md`) with the correct structure

@@ -1,8 +1,168 @@
 # ADIK.md — Agentic Development and Implementation Kit
 
-> **Version:** 1.0.0
+> **Version:** 1.1.0
 > **Role:** Implementation Orchestrator
 > **Scope:** Deployed into target repositories — drives SDK generation and codebase implementation
+
+---
+
+## Executive Summary
+
+### About ADIK
+
+**ADIK (Agentic Development and Implementation Kit)** is a framework standard for fully automated, AI-driven SDK generation and maintenance. This file is the implementation orchestrator — it is copied from the ADIK source repository into any target project and drives the end-to-end creation of publish-ready SDK packages.
+
+### About This Project
+
+> **[AUTO-FILLED ON DEPLOYMENT]** When ADIK.md is deployed to a target repository, this section is populated with a project-specific executive summary:
+>
+> - **Project name and description** — what the project does and who uses it
+> - **Tech stack and frameworks** — detected from `architecture.md`, package manifests, and existing agent/skill files
+> - **Project type** — `api` | `service` | `library` (auto-detected)
+> - **SDK target languages** — as configured or defaulted to `[typescript, python, csharp]`
+> - **ADIK reach** — which parts of the codebase ADIK covers (included source patterns, registry scope, SDK output directories)
+>
+> Example:
+> ```
+> Project: PaymentsAPI — REST API for payment processing (Node.js / NestJS)
+> Frameworks: NestJS, TypeORM, Jest
+> Project type: api
+> SDK languages: TypeScript, Python
+> ADIK reach: src/**/* → Registry.md → sdk/typescript/, sdk/python/
+> ```
+
+### Reach of ADIK
+
+Once deployed, ADIK covers the following lifecycle automatically:
+
+| Stage | What ADIK Does |
+|---|---|
+| **Analysis** | Scans the source codebase and populates `Registry.md` with every public symbol |
+| **Framework inference** | Detects frameworks in use (React, NestJS, FastAPI, etc.) without manual configuration |
+| **SDK generation** | Emits complete, publish-ready packages in TypeScript, Python, and C# |
+| **Consumption boilerplate** | Generates idiomatic usage examples, DI wiring, and serialization helpers per framework |
+| **Continuous sync** | Re-runs on every commit, regenerating only what changed |
+| **Vector search** | Optionally embeds the Registry for semantic symbol lookup (when a vector DB is present) |
+| **MCP server** | Exposes all capabilities to any connected agentic environment |
+| **Context embedding** | Injects itself into `.github/copilot-instructions.md`, `CLAUDE.md`, and `agents.md` so the AI always knows ADIK is active |
+
+---
+
+## Implementation Mode — First Question
+
+> **⚠️ REQUIRED STARTUP PROTOCOL**
+>
+> When ADIK.md is first invoked in a new project (i.e., this is the first run and no `adik.env.json` exists), **before taking any implementation action**, ADIK must ask the following question:
+
+---
+
+**ADIK Startup Prompt:**
+
+> I have analysed this repository and identified the following areas where I can help:
+>
+> - **SDK generation** for `[detected languages]`
+> - **Registry population** from `[detected source patterns]`
+> - **Consumption boilerplate** for `[detected frameworks]`
+> - **Context embedding** into `.github/copilot-instructions.md`, `CLAUDE.md`, and `agents.md`
+> - *(list any other applicable areas)*
+>
+> How would you like to proceed?
+>
+> **A) Blanket implementation** — I will apply ADIK across all identified areas automatically, using my best judgment for configuration and scope. Recommended for most projects. *(Faster — I'll ask clarifying questions only if I hit an ambiguity I cannot resolve.)*
+>
+> **B) Guided implementation** — Before I proceed, please describe any constraints, exclusions, or specific requirements I should follow. *(Better for projects with non-standard layouts, partial adoption, or specific output requirements.)*
+>
+> *Please respond with **A**, **B**, or describe your requirements.*
+
+---
+
+On receiving **A**: proceed with all identified implementation areas using auto-detected configuration. Document decisions in `adik.env.json` under `startupMode: "blanket"`.
+
+On receiving **B**: collect requirements before proceeding. Record them in `adik.env.json` under `startupGuidance` and respect them throughout the pipeline.
+
+On receiving neither: interpret the response as guided requirements and record them accordingly.
+
+> **Note:** On subsequent runs (when `adik.env.json` already exists), skip this question and proceed in the mode recorded at `startupMode`. If the mode is `"guided"`, re-apply the saved `startupGuidance` unless the user explicitly overrides it.
+
+---
+
+## Self-Embedding Protocol
+
+After the first successful run, ADIK.md **must** embed itself into the target project's agentic context files. This ensures that any AI assistant working in the target project is always aware that ADIK is present and active.
+
+### Files to Create or Update
+
+#### 1. `.github/copilot-instructions.md`
+
+Append or create with the following block:
+
+```markdown
+## ADIK — Agentic Development and Implementation Kit
+
+This project uses **ADIK** for automated SDK generation and maintenance.
+
+- **Orchestrator:** `ADIK.md` (implementation orchestrator)
+- **Registry:** `Registry.md` (single source of truth for all public symbols)
+- **Agents:** `agents/builder.agent.md`, `agents/codebase-analyst.agent.md`
+- **Skills:** `skills/sdk-builder.skill.md`, `skills/sdk-consumer.skill.md`, `skills/vectorize.skill.md`
+- **MCP server:** `mcp/adik-mcp-server.md`
+- **Build output:** `sdk/` (TypeScript, Python, C# packages)
+
+**Key rules for Copilot:**
+- Never define a type in the SDK that is not first declared in `Registry.md`.
+- SDK files in `sdk/` are generated — do not edit them directly; update the source and re-run ADIK.
+- To trigger SDK regeneration: `@agent builder task: build-sdk registry: Registry.md`
+- To refresh the registry: `@agent codebase-analyst task: analyse-and-register`
+```
+
+#### 2. `CLAUDE.md`
+
+Append or create with the following block:
+
+```markdown
+## ADIK — Agentic Development and Implementation Kit
+
+**Executive Summary:** [filled from ADIK.md Executive Summary — About This Project]
+
+**Orchestrator:** `ADIK.md`
+**Registry:** `Registry.md`
+**SDK output:** `sdk/typescript/`, `sdk/python/`, `sdk/csharp/`
+**ADIK reach:** [filled from detected source patterns and config]
+
+**Key rules:**
+- `Registry.md` is the single source of truth. All public symbols must be declared there.
+- Files in `sdk/` are generated. Do not edit them manually.
+- Run `@agent codebase-analyst task: analyse-and-register` to refresh the registry after source changes.
+- Run `@agent builder task: build-sdk` to regenerate the SDK after registry changes.
+```
+
+#### 3. `agents.md`
+
+Append or create with the following ADIK integration block (this is also written by the Builder Agent after each successful build):
+
+```markdown
+## ADIK — SDK Orchestrator
+
+Loaded agents:
+- agents/builder.agent.md
+- agents/codebase-analyst.agent.md
+
+Loaded skills:
+- skills/sdk-builder.skill.md
+- skills/sdk-consumer.skill.md
+- skills/vectorize.skill.md (loaded on demand when vectorMode is active)
+
+Registry: Registry.md
+MCP server: mcp/adik-mcp-server.md
+Vector store: <vectorStoreUri or "none">
+SDK output: sdk/ (typescript | python | csharp)
+```
+
+### Embedding Rules
+
+- **Never overwrite** the entire file — append the ADIK block, or replace the existing ADIK block if it is already present (identified by the `## ADIK` heading).
+- **Idempotent** — running ADIK multiple times must not produce duplicate blocks.
+- **Minimal footprint** — ADIK only adds its own block; it does not modify other content in these files.
 
 ---
 
@@ -193,9 +353,11 @@ Only changed symbols trigger incremental SDK regeneration. Changed embeddings ar
 
 ---
 
-## Integration with `agents.md`
+## Integration with `agents.md`, `CLAUDE.md`, and Copilot Instructions
 
-After the first successful run, ADIK.md appends the following snippet to the repository's root `agents.md` (or creates one if absent):
+After the first successful run, ADIK.md follows the **Self-Embedding Protocol** above to inject its presence into the three context files. The Builder Agent is responsible for the `agents.md` upsert; ADIK.md itself handles `CLAUDE.md` and `.github/copilot-instructions.md`.
+
+The full ADIK integration block written to `agents.md` is:
 
 ```markdown
 ## ADIK — SDK Orchestrator
@@ -207,10 +369,12 @@ Loaded agents:
 Loaded skills:
 - skills/sdk-builder.skill.md
 - skills/sdk-consumer.skill.md
+- skills/vectorize.skill.md (loaded on demand when vectorMode is active)
 
 Registry: Registry.md
 MCP server: mcp/adik-mcp-server.md
 Vector store: <vectorStoreUri or "none">
+SDK output: sdk/ (typescript | python | csharp)
 ```
 
 This ensures all ADIK agents and skills are available in any agentic session that loads the repository.
@@ -225,6 +389,10 @@ This ensures all ADIK agents and skills are available in any agentic session tha
 ├── Registry.md                      ← DRY symbol registry
 ├── adik.config.json                 ← (optional) configuration
 ├── adik.env.json                    ← (auto-generated) env capabilities, frameworkHints, dev state
+├── CLAUDE.md                        ← (created/updated) ADIK context for Claude sessions
+├── agents.md                        ← (created/updated) agent/skill registry for agentic sessions
+├── .github/
+│   └── copilot-instructions.md      ← (created/updated) ADIK context for GitHub Copilot
 ├── vectors/                         ← (optional) bundled or generated vector embeddings
 │   ├── registry.vec                 ← Registry embeddings (NDJSON; see vectorize.skill.md)
 │   └── codebase.vec                 ← Codebase embeddings (NDJSON; see vectorize.skill.md)
@@ -282,6 +450,8 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
 - **Vectorization is a subskill.** All vector-store interactions are isolated in `skills/vectorize.skill.md`. The orchestrator and agents never contain embedding or chunking logic directly.
 - **frameworkHints are inferred, not required.** If the caller does not supply hints, the Codebase Analyst Agent infers them from `architecture.md`, package manifests, and existing agent/skill files.
 - **Crosstailing is prevented by state tracking.** Each run records a dev-state snapshot in `adik.env.json` so the next run can detect and report stale artifacts before writing anything.
+- **Self-embedding is mandatory.** After the first successful run, ADIK must create or update `.github/copilot-instructions.md`, `CLAUDE.md`, and `agents.md` in the target project so any AI assistant working in that project is always aware that ADIK is active.
+- **Implementation mode is recorded.** The startup mode (`blanket` or `guided`) and any guidance provided is saved in `adik.env.json` and re-applied on subsequent runs.
 
 ---
 
@@ -291,7 +461,10 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
 |---|---|
 | `Registry.md` | Single source of truth for all exported symbols |
 | `adik.config.json` | Configuration including vector options |
-| `adik.env.json` | Auto-generated: env capabilities, inferred frameworkHints, dev-state snapshot |
+| `adik.env.json` | Auto-generated: env capabilities, inferred frameworkHints, dev-state snapshot, startupMode |
+| `CLAUDE.md` | Created/updated: ADIK context for Claude-based sessions |
+| `agents.md` | Created/updated: agent and skill registry for agentic sessions |
+| `.github/copilot-instructions.md` | Created/updated: ADIK context for GitHub Copilot |
 | `vectors/` | Bundled or generated vector embeddings (optional; managed by vectorize.skill.md) |
 | `agents/codebase-analyst.agent.md` | Env probe, framework inference, dev-state check, symbol analysis |
 | `agents/builder.agent.md` | Orchestrates SDK generation across languages |
