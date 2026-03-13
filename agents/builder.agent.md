@@ -30,6 +30,7 @@ The Builder Agent is the primary execution agent of the ADIK framework. It reads
 |---|---|---|
 | `Registry.md` | Repository root | Yes |
 | `adik.config.json` | Repository root | No (defaults apply) |
+| `adik.env.json` | Repository root | No (document mode if absent) |
 | `projectType` | Registry metadata | Yes |
 | `sdkLanguages` | Config or Registry metadata | Yes |
 | `outputDir` | Config | No (default: `./sdk`) |
@@ -56,22 +57,25 @@ The Builder Agent is the primary execution agent of the ADIK framework. It reads
    ├─ ASSERT metadata.lastAnalysedCommit is set
    └─ ASSERT at least one section (Endpoints, Classes, or Functions) is non-empty
 
-2. FOR EACH language IN config.sdkLanguages:
+2. READ adik.env.json (if present) to determine vectorMode
+
+3. FOR EACH language IN config.sdkLanguages:
    ├─ INVOKE sdk-builder.skill
-   │    inputs: { registry, language, projectType, outputDir }
+   │    inputs: { registry, language, projectType, outputDir, useVectors: <from adik.env.json> }
    │    outputs: sdk/<language>/
    │
    └─ INVOKE sdk-consumer.skill
-        inputs: { registry, language, projectType, outputDir }
+        inputs: { registry, language, projectType, outputDir, useVectors: <from adik.env.json> }
         outputs: sdk/<language>/examples/, sdk/<language>/boilerplate/
 
-3. WRITE sdk/BUILD_REPORT.md
+4. WRITE sdk/BUILD_REPORT.md
    ├─ timestamp
    ├─ registry commit SHA
+   ├─ vectorMode (active | inactive)
    ├─ list of generated files per language
    └─ any warnings or skipped symbols
 
-4. UPSERT agents.md with ADIK integration block
+5. UPSERT agents.md with ADIK integration block (including Vector store URI)
 ```
 
 ---
@@ -134,8 +138,9 @@ languages: [typescript, python, csharp]
 
 | File | Role |
 |---|---|
-| `ADIK.md` | Parent orchestrator |
+| `ADIK.md` | Parent orchestrator; defines vector detection and configuration |
 | `Registry.md` | Symbol registry consumed by this agent |
+| `adik.env.json` | Detected environment capabilities (governs vector mode) |
 | `agents/codebase-analyst.agent.md` | Upstream agent that populates the registry |
 | `skills/sdk-builder.skill.md` | Delegate skill for SDK code generation |
 | `skills/sdk-consumer.skill.md` | Delegate skill for consumption boilerplate |

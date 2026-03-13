@@ -19,6 +19,11 @@ sdkLanguages:
   - typescript
   - python
   - csharp
+vectors:
+  bundled: false          # true if this Registry was distributed with pre-computed embeddings
+  storeUri: ""            # URI of the vector store used for this registry (empty = not vectorized)
+  lastVectorised: ""      # ISO-8601 timestamp of last vectorisation run
+  embeddingModel: ""      # model used to produce embeddings (e.g. "text-embedding-3-small")
 ```
 
 ---

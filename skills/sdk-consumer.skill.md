@@ -17,13 +17,24 @@ This skill ensures that the generated SDK is not just correct but immediately us
 
 ## Inputs
 
-| Input | Type | Description |
-|---|---|---|
-| `registry` | path | Path to `Registry.md` |
-| `language` | enum | `typescript` \| `python` \| `csharp` |
-| `projectType` | enum | `api` \| `service` \| `library` |
-| `outputDir` | path | Root output path (e.g. `./sdk`) |
-| `frameworkHints` | string[] | Optional list of target frameworks (e.g. `["react", "fastapi", "aspnet"]`) |
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `registry` | path | Yes | Path to `Registry.md` |
+| `language` | enum | Yes | `typescript` \| `python` \| `csharp` |
+| `projectType` | enum | Yes | `api` \| `service` \| `library` |
+| `outputDir` | path | Yes | Root output path (e.g. `./sdk`) |
+| `frameworkHints` | string[] | No | Target frameworks — **auto-inferred if not provided** (see below) |
+
+### Framework Hints Auto-Inference
+
+When `frameworkHints` is not explicitly provided, this skill reads `adik.env.json` for hints inferred by the Codebase Analyst Agent. The inference precedence is:
+
+1. **Explicit invocation parameter** — always wins.
+2. **`adik.env.json.frameworkHints` non-empty array** — populated by the Codebase Analyst Agent from `architecture.md`, package manifests, and existing agent/skill files.
+3. **`adik.env.json` present but `frameworkHints` missing, null, or empty** — treated the same as case 4; fall through to generic boilerplate.
+4. **`adik.env.json` not present** — generic, framework-neutral boilerplate is generated.
+
+This means that in the typical workflow, `frameworkHints` never needs to be set manually; ADIK discovers the target framework automatically.
 
 ---
 
