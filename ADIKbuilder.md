@@ -1,6 +1,6 @@
 # ADIKbuilder.md — Agentic Development and Implementation Kit Builder
 
-> **Version:** 1.0.0
+> **Version:** 1.1.0
 > **Role:** Source-Repo Orchestrator
 > **Scope:** This file lives exclusively in the `adik.md-agentic-development-and-implementation-kit` source repository and governs the development, validation, and release of the ADIK framework itself. It is **not** part of the deployable bundle.
 
@@ -76,6 +76,80 @@ adik-bundle/
 2. Tag the release in git (`vX.Y.Z`).
 3. Update `README.md` with the release notes.
 4. Ensure the bundle does not include `ADIKbuilder.md`.
+5. **Prompt the user:** *"Would you like to create a separate GitHub repository within the same organization to distribute this bundle internally? (Recommended for teams sharing ADIK across multiple internal projects.)"*
+   - If **yes**: follow the [Internal Distribution Repository](#internal-distribution-repository) workflow below.
+   - If **no**: distribution is complete — the bundle is available via this repository's tags.
+
+---
+
+## Internal Distribution Repository
+
+When the user chooses to create a dedicated distribution repository, execute the following steps:
+
+### 1. Confirm Organisation and Repository Name
+
+Prompt the user for:
+
+| Field | Default | Notes |
+|---|---|---|
+| GitHub organisation | *(current repo owner)* | The org under which the new repo will be created |
+| Repository name | `adik-bundle` | Should be descriptive; e.g. `adik-dist`, `adik-internal`, `adik-bundle` |
+| Visibility | `internal` | `internal` is recommended for inner-source distribution; `private` is also acceptable |
+| Description | `Internal ADIK bundle distribution` | Short description shown on the GitHub repo page |
+
+### 2. Create the Repository
+
+```bash
+gh repo create <org>/<repo-name> \
+  --description "<description>" \
+  --internal \
+  --confirm
+```
+
+> **Note:** Replace `--internal` with `--private` if the organisation does not have GitHub Enterprise (which is required for `internal` visibility). Requires the GitHub CLI (`gh`) with `repo:write` scope in the target organisation. If `gh` is unavailable, instruct the user to create the repository manually on GitHub and then clone it.
+
+### 3. Initialise and Push the Bundle
+
+```bash
+# Clone the new empty repo
+git clone https://github.com/<org>/<repo-name>.git adik-dist-repo
+cd adik-dist-repo
+
+# Copy only the deployable bundle files (never ADIKbuilder.md or ADIKBuilderExample.md)
+cp -r ../ADIK.md ../Registry.md ../agents ../skills ../mcp .
+
+# (Optional) copy adik.config.json if a canonical default is provided
+# cp ../adik.config.json .
+
+# Commit and tag
+git add .
+git commit -m "chore: initialise ADIK bundle vX.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags
+```
+
+### 4. Document the Distribution Repository
+
+Add a **Distribution** section to this source repository's `README.md` pointing consumers to the new repo:
+
+```markdown
+## Internal Distribution
+
+The deployable ADIK bundle is published to:
+**https://github.com/<org>/<repo-name>**
+
+Each release is tagged `vX.Y.Z`. To add ADIK to a new repository:
+
+    git clone https://github.com/<org>/<repo-name>.git adik-bundle --branch vX.Y.Z --depth 1
+    cp -r adik-bundle/* /path/to/your/target-repo/
+```
+
+### 5. Verify the Distribution Repository
+
+- [ ] Confirm the new repo is visible to the intended teams/members within the organisation.
+- [ ] Confirm `ADIKbuilder.md` and `ADIKBuilderExample.md` are **not** present in the distribution repo.
+- [ ] Confirm the `vX.Y.Z` tag resolves to the correct commit.
+- [ ] Share the repository URL with relevant teams.
 
 ---
 

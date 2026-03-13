@@ -81,6 +81,36 @@ MyADIKbuilder.md itself is NEVER included.
 - Adding a new agent/skill: create the file, reference it from ADIK.md, bump patch version.
 - Changing the Registry schema: update Registry.md and all agents/skills that read/write it, bump minor version.
 - Breaking change to ADIK.md: bump major version, notify consumers.
+- Releasing a new version: after tagging, prompt the user whether to create a separate GitHub repository within the same organisation for internal distribution (see Releasing and Distribution below).
+
+## Releasing and Distribution
+
+When releasing a new bundle version:
+
+1. Increment the version in this file and in `ADIK.md`.
+2. Tag the release (`vX.Y.Z`).
+3. Update `README.md` with release notes.
+4. **Prompt the user:** *"Would you like to create a separate GitHub repository within the same organisation to distribute this bundle internally?"*
+   - If **yes**: create the repo (see steps below), push only the deployable bundle files, and document the distribution URL in `README.md`.
+   - If **no**: distribution is complete via this repository's tags.
+
+### Creating an Internal Distribution Repository
+
+```bash
+# Create the repo in your organisation
+gh repo create <org>/<repo-name> --description "<description>" --internal --confirm
+
+# Clone, copy bundle, and push
+git clone https://github.com/<org>/<repo-name>.git adik-dist-repo
+cd adik-dist-repo
+cp -r ../ADIK.md ../Registry.md ../agents ../skills ../mcp .
+git add .
+git commit -m "chore: initialise bundle vX.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags
+```
+
+Ensure `MyADIKbuilder.md` and any other source-only files are **never** included in the distribution repo.
 ```
 
 ### What Makes a Good Framework Orchestrator
@@ -540,6 +570,7 @@ Before calling your framework complete, verify:
 - [ ] `vectorize.skill.md` starts with `ASSERT vectorMode = "active"` and exits immediately if not.
 - [ ] `ADIK.md` does not contain any embedding or vector-store implementation details.
 - [ ] Your framework has a version number in both `MyADIKbuilder.md` and `ADIK.md`.
+- [ ] Your `MyADIKbuilder.md` release workflow prompts the user to optionally create a separate GitHub repository within the same organisation for internal distribution.
 
 ---
 
