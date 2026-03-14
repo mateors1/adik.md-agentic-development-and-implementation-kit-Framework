@@ -44,18 +44,22 @@ ADIK_FRAMEWORK_FILES = [
     "Registry.index.md",
     "adik.env.json",
     "adik.config.json",
+    # ADIK-owned helper scripts in the scripts/ directory
+    "scripts/adik-embed.py",
+    "scripts/adik-eject.py",
 ]
 
 # Glob patterns for domain registry partitions
 ADIK_REGISTRY_PATTERNS = ["Registry.*.md"]
 
 # Directories that are always candidates for removal
+# NOTE: We intentionally do NOT include the top-level "scripts" directory here
+# to avoid deleting non-ADIK scripts owned by the target repository.
 ADIK_FRAMEWORK_DIRS = [
     "agents",
     "skills",
     "mcp",
     "vectors",
-    "scripts",
 ]
 
 # Generated SDK directory (only removed with --remove-sdk)
