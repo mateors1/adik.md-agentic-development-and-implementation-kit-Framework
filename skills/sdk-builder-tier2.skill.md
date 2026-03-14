@@ -159,9 +159,9 @@ sdk/kotlin/
 | Record\<K,V\> | map[K]V | Map\<K,V\> | Map\<K,V\> |
 | Map\<K,V\> | map[K]V | Map\<K,V\> | Map\<K,V\> |
 | Set\<T\> | map[T]struct{} | Set\<T\> | Set\<T\> |
-| Promise\<T\> | chan T / error | CompletableFuture\<T\> | Deferred\<T\> |
+| Promise\<T\> | (T, error) (async result pattern) | CompletableFuture\<T\> | Deferred\<T\> |
 | Date | time.Time | java.time.Instant | java.time.Instant |
-| UUID | uuid.UUID (google/uuid) | UUID | UUID |
+| UUID | uuid.UUID (github.com/google/uuid) | UUID | UUID |
 | Buffer | []byte | byte[] | ByteArray |
 
 ---
