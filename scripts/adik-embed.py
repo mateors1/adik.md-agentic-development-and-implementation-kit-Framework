@@ -230,14 +230,22 @@ def _gather_context(target: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _escape_braces(value):
+    """Escape braces in strings so they are treated as literals by str.format."""
+    if isinstance(value, str):
+        return value.replace("{", "{{").replace("}", "}}")
+    return value
+
+
 def action_upsert(target: Path) -> None:
     """Insert or update the ADIK block in all three context files."""
     ctx = _gather_context(target)
+    safe_ctx = {key: _escape_braces(val) for key, val in ctx.items()}
 
     files = {
-        target / ".github" / "copilot-instructions.md": COPILOT_BLOCK.format(**ctx),
-        target / "CLAUDE.md": CLAUDE_BLOCK.format(**ctx),
-        target / "agents.md": AGENTS_BLOCK.format(**ctx),
+        target / ".github" / "copilot-instructions.md": COPILOT_BLOCK.format(**safe_ctx),
+        target / "CLAUDE.md": CLAUDE_BLOCK.format(**safe_ctx),
+        target / "agents.md": AGENTS_BLOCK.format(**safe_ctx),
     }
 
     for path, block in files.items():
