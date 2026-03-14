@@ -11,9 +11,14 @@
 # are NEVER included in the deployed bundle.
 #
 # Requirements:
-#   - A GitHub Personal Access Token or fine-grained token stored as secret
-#     ADIK_DEPLOY_TOKEN with scopes: repo (create, push), workflow
-#   - The token must have access to create repositories in the target org/user.
+#   - A fine-grained GitHub Personal Access Token stored as secret ADIK_DEPLOY_TOKEN.
+#     Recommended scopes (minimum required):
+#       - Contents: Read and write (on the target bundle repo)
+#       - Metadata: Read-only
+#       - Administration: Read and write (only needed to CREATE the repo the first time)
+#     For least-privilege: create the bundle repo manually first, then grant only
+#     Contents: Read and write on that specific repo.
+#   - The token must have access to the target org/user account.
 #
 # Triggered by:
 #   - Publishing a GitHub Release (automatic)
@@ -41,11 +46,12 @@ on:
       visibility:
         description: 'Repository visibility'
         required: false
-        default: 'public'
+        default: 'private'
         type: choice
         options:
-          - public
           - private
+          - public
+          - internal
 
 env:
   # Set to "true" to also deploy on every push to main.

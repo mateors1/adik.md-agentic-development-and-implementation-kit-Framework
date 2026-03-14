@@ -244,6 +244,11 @@ to partitioned mode:
    AND adik.env.json.vectorizationAdvisoryShown != true:
      EMIT the vectorization advisory prompt (see Registry.index.md)
      SET adik.env.json.vectorizationAdvisoryShown = true
+
+   Note: `vectorizationAdvisoryShown` is a runtime flag in adik.env.json (reset when
+   adik.env.json is regenerated). `vectorizationAdvisoryDismissed` is a persistent opt-out
+   in adik.config.json (survives regeneration). Use `vectorizationAdvisoryDismissed: true`
+   in adik.config.json to permanently suppress the advisory.
 ```
 
 **Upgrading from monolithic to partitioned:**

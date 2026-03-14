@@ -90,7 +90,7 @@ def _remove_adik_block(content: str) -> Tuple[str, bool]:
     return updated, True
 
 
-def _collect_removals(target: Path, remove_sdk: bool) -> List[Tuple[str, Path, str]]:
+def _collect_removals(target: Path, remove_sdk: bool, keep_scripts: bool = False) -> List[Tuple[str, Path, str]]:
     """
     Collect all paths that would be removed.
     Returns list of (action, path, reason) tuples.
@@ -104,13 +104,18 @@ def _collect_removals(target: Path, remove_sdk: bool) -> List[Tuple[str, Path, s
         if p.exists():
             actions.append(("delete_file", p, "ADIK framework file"))
 
-    # Registry partition files
+    # Registry partition files (exclude files already added from ADIK_FRAMEWORK_FILES)
+    already_collected = {p for _, p, _ in actions}
     for pattern in ADIK_REGISTRY_PATTERNS:
-        for p in target.glob(pattern):
-            actions.append(("delete_file", p, "ADIK registry partition"))
+        for p in sorted(target.glob(pattern)):
+            if p not in already_collected:
+                actions.append(("delete_file", p, "ADIK registry partition"))
+                already_collected.add(p)
 
     # Framework directories
     for dname in ADIK_FRAMEWORK_DIRS:
+        if keep_scripts and dname == "scripts":
+            continue
         p = target / dname
         if p.exists() and p.is_dir():
             actions.append(("delete_dir", p, "ADIK framework directory"))
@@ -202,6 +207,14 @@ def main() -> None:
         action="store_true",
         help="Also remove the generated sdk/ directory (or set ADIK_EJECT_SDK=true)",
     )
+    parser.add_argument(
+        "--keep-scripts",
+        action="store_true",
+        help=(
+            "Preserve the scripts/ directory during eject. "
+            "Recommended when you want to verify the eject or re-run the script afterwards."
+        ),
+    )
     args = parser.parse_args()
 
     target = Path(args.target).resolve()
@@ -212,12 +225,13 @@ def main() -> None:
     # Honour environment variables for non-interactive / CI usage.
     confirmed = args.confirm or os.environ.get("ADIK_EJECT", "").lower() == "true"
     remove_sdk = args.remove_sdk or os.environ.get("ADIK_EJECT_SDK", "").lower() == "true"
+    keep_scripts = args.keep_scripts or os.environ.get("ADIK_EJECT_KEEP_SCRIPTS", "").lower() == "true"
     dry_run = args.dry_run
 
     print(f"ADIK Eject — target={target}")
-    print(f"  dry-run={dry_run}, confirmed={confirmed}, remove-sdk={remove_sdk}\n")
+    print(f"  dry-run={dry_run}, confirmed={confirmed}, remove-sdk={remove_sdk}, keep-scripts={keep_scripts}\n")
 
-    actions = _collect_removals(target, remove_sdk)
+    actions = _collect_removals(target, remove_sdk, keep_scripts)
 
     if not actions:
         print("Nothing to eject — no ADIK artefacts found.")
@@ -240,6 +254,8 @@ def main() -> None:
     print("Executing eject...")
     _execute_plan(actions, dry_run=False)
     print("\nADIK has been ejected. Source code was not modified.")
+    if keep_scripts:
+        print("Note: scripts/ directory was preserved (--keep-scripts).")
     if not remove_sdk:
         print(
             "Note: generated sdk/ directory was preserved. "

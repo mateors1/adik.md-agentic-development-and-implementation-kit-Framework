@@ -178,13 +178,17 @@ def _gather_context(target: Path) -> dict:
     project_summary = "[auto-filled on deployment]"
     adik_reach = "src/**/* → Registry.md → sdk/"
 
+    def _safe(value: str) -> str:
+        """Escape curly braces in user-supplied strings to prevent format-string injection."""
+        return str(value).replace("{", "{{").replace("}", "}}")
+
     # Read adik.env.json if present.
     env_file = target / "adik.env.json"
     if env_file.exists():
         try:
             env = json.loads(env_file.read_text(encoding="utf-8"))
             if env.get("vectors", {}).get("storeUri"):
-                vector_store = env["vectors"]["storeUri"]
+                vector_store = _safe(env["vectors"]["storeUri"])
         except (json.JSONDecodeError, KeyError):
             pass
 
@@ -196,13 +200,13 @@ def _gather_context(target: Path) -> dict:
             languages = list(cfg.get("sdkLanguages", ["typescript", "python", "csharp"]))
             tier2 = cfg.get("tier2Languages", [])
             if tier2:
-                languages += [f"{l} (tier-2)" for l in tier2]
-            sdk_languages = ", ".join(languages)
+                languages += [f"{_safe(l)} (tier-2)" for l in tier2]
+            sdk_languages = ", ".join(_safe(l) for l in languages)
             if cfg.get("registryPath"):
-                registry_path = cfg["registryPath"]
+                registry_path = _safe(cfg["registryPath"])
             if cfg.get("includePatterns"):
                 adik_reach = (
-                    ", ".join(cfg["includePatterns"])
+                    ", ".join(_safe(p) for p in cfg["includePatterns"])
                     + f" → {registry_path} → sdk/"
                 )
         except (json.JSONDecodeError, KeyError):

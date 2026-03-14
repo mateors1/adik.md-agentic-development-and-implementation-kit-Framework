@@ -151,7 +151,7 @@ sdk/kotlin/
 | number | float64 | double | Double |
 | integer | int | int / Integer | Int |
 | boolean | bool | boolean / Boolean | Boolean |
-| null | nil / pointer | null | null / nullable |
+| null | `*T` (pointer to T; `nil` is the zero value for pointer types) | null | null / nullable |
 | void | — (no return) | void | Unit |
 | any | interface{} / any | Object | Any |
 | object | map[string]interface{} | Map\<String,Object\> | Map\<String,Any\> |
@@ -170,6 +170,9 @@ sdk/kotlin/
 
 1. **Structs** — every Registry `class` and `schema` becomes a Go struct with JSON tags derived
    from the property name using `camelCase` → `snake_case` conversion.
+2. **Nullable fields** — Registry fields typed as `null` or optional become pointer types (`*T`).
+   `nil` is the Go zero value for pointers and signals absence. Non-optional fields use value
+   types directly (no pointer).
 2. **Interfaces** — every Registry `interface` becomes a Go `interface` type.
 3. **Enumerations** — every Registry `enum` becomes a `const` block with `iota` where values are
    sequential, or explicit string/int constants otherwise.

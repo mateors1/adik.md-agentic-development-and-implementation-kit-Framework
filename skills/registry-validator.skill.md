@@ -91,8 +91,8 @@ RULE T-001: Known primitive types
 RULE T-002: No raw `dict` or `object` without type parameter
   WARNING (strict: VIOLATION) if a parameter or return type is exactly "dict" or "Object"
   with no generic type argument.
-  Message: "Ambiguous type '{type}' in symbol '{id}' — use a typed interface or specify
-  generic parameters."
+  Message: "Ambiguous type '{type}' on parameter/return of '{id}' — use a typed interface or
+  specify generic parameters (e.g. Record<string, MyType> or Map<string, MyType>)."
 
 RULE T-003: Cross-partition type references
   IF registryMode = "partitioned":
@@ -191,7 +191,7 @@ RULE P-004: Changelog freshness
 
 ### T-002 — No raw `dict` or `object` without type parameter
 - Symbol `fn:processWebhook` parameter `payload`: ambiguous type `dict` — use a typed
-  interface or specify generic parameters.
+  interface or specify generic parameters (e.g. Record<string, MyType>).
 
 ---
 
