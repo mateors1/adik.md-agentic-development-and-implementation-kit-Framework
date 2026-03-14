@@ -1,0 +1,282 @@
+# adik-self-deploy.yml — ADIK CI/CD Self-Deployment Workflow
+#
+# This workflow automatically deploys the ADIK bundle as a separate repository
+# named "<org>/<reponame>-ADIK" whenever a new release is published or when
+# manually triggered.
+#
+# The resulting repository contains only the deployable bundle:
+#   ADIK.md, Registry.md, Registry.index.md, agents/, skills/, mcp/, scripts/
+#
+# Source-only files (ADIKbuilder.md, docs/, CLAUDE.md, agents.md, .github/)
+# are NEVER included in the deployed bundle.
+#
+# Requirements:
+#   - A GitHub Personal Access Token or fine-grained token stored as secret
+#     ADIK_DEPLOY_TOKEN with scopes: repo (create, push), workflow
+#   - The token must have access to create repositories in the target org/user.
+#
+# Triggered by:
+#   - Publishing a GitHub Release (automatic)
+#   - Manual workflow_dispatch (with optional version override)
+#   - Push to main branch (optional; disabled by default — set DEPLOY_ON_PUSH: true)
+#
+# Non-interactive / headless safe:
+#   ADIK_NON_INTERACTIVE=true is set in the environment so no startup prompt blocks CI.
+
+name: ADIK Self-Deploy
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Bundle version tag (e.g. v2.0.0). Defaults to latest release tag.'
+        required: false
+        default: ''
+      target_org:
+        description: 'GitHub org/user to deploy the bundle repo into (defaults to repo owner)'
+        required: false
+        default: ''
+      visibility:
+        description: 'Repository visibility'
+        required: false
+        default: 'public'
+        type: choice
+        options:
+          - public
+          - private
+
+env:
+  # Set to "true" to also deploy on every push to main.
+  DEPLOY_ON_PUSH: 'false'
+  # Non-interactive mode: skip the startup prompt in ADIK.md
+  ADIK_NON_INTERACTIVE: 'true'
+  ADIK_STARTUP_MODE: 'blanket'
+
+jobs:
+  deploy-bundle:
+    name: Deploy ADIK Bundle
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout source repository
+      # -----------------------------------------------------------------------
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # -----------------------------------------------------------------------
+      # 2. Determine version and target
+      # -----------------------------------------------------------------------
+      - name: Resolve version and target org
+        id: vars
+        run: |
+          # Version: prefer workflow input, then release tag, then latest git tag
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ -n "${{ github.event.release.tag_name }}" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0.0.0-dev')"
+          fi
+
+          # Target org: prefer workflow input, then repo owner
+          if [ -n "${{ github.event.inputs.target_org }}" ]; then
+            TARGET_ORG="${{ github.event.inputs.target_org }}"
+          else
+            TARGET_ORG="${{ github.repository_owner }}"
+          fi
+
+          # Bundle repo name: <source-repo-name>-ADIK (lowercase, strip .md suffixes)
+          SOURCE_REPO="${{ github.event.repository.name }}"
+          # Sanitize: lowercase, replace dots and spaces with hyphens
+          BUNDLE_REPO="$(echo "${SOURCE_REPO}" | tr '[:upper:]' '[:lower:]' | sed 's/[. ]/-/g')-adik"
+
+          # Visibility
+          VISIBILITY="${{ github.event.inputs.visibility }}"
+          VISIBILITY="${VISIBILITY:-public}"
+
+          echo "version=${VERSION}"          >> "$GITHUB_OUTPUT"
+          echo "target_org=${TARGET_ORG}"    >> "$GITHUB_OUTPUT"
+          echo "bundle_repo=${BUNDLE_REPO}"  >> "$GITHUB_OUTPUT"
+          echo "visibility=${VISIBILITY}"    >> "$GITHUB_OUTPUT"
+
+          echo "=== Deploy Parameters ==="
+          echo "  Version:     ${VERSION}"
+          echo "  Target org:  ${TARGET_ORG}"
+          echo "  Bundle repo: ${TARGET_ORG}/${BUNDLE_REPO}"
+          echo "  Visibility:  ${VISIBILITY}"
+
+      # -----------------------------------------------------------------------
+      # 3. Assemble the deployable bundle
+      # -----------------------------------------------------------------------
+      - name: Assemble bundle
+        id: bundle
+        run: |
+          BUNDLE_DIR="${RUNNER_TEMP}/adik-bundle"
+          mkdir -p "${BUNDLE_DIR}"
+
+          # Copy deployable files only — never copy source-only files
+          cp ADIK.md               "${BUNDLE_DIR}/"
+          cp Registry.md           "${BUNDLE_DIR}/"
+          cp Registry.index.md     "${BUNDLE_DIR}/"
+          cp -r agents             "${BUNDLE_DIR}/"
+          cp -r skills             "${BUNDLE_DIR}/"
+          cp -r mcp                "${BUNDLE_DIR}/"
+          cp -r scripts            "${BUNDLE_DIR}/"
+
+          # Write a minimal README for the bundle repo
+          cat > "${BUNDLE_DIR}/README.md" << 'EOF'
+          # ADIK Bundle
+
+          This repository is the deployable ADIK bundle — automatically generated from the
+          [ADIK source repository](https://github.com/${{ github.repository }}).
+
+          **Version:** ${{ steps.vars.outputs.version }}
+          **Source:** ${{ github.repository }}@${{ github.sha }}
+
+          ## What Is ADIK?
+
+          ADIK (Agentic Development and Implementation Kit) is a framework standard for
+          fully automated, AI-driven SDK generation and maintenance.
+
+          ## How to Deploy ADIK Into Your Project
+
+          ```bash
+          # Clone this bundle into your target repository
+          git clone https://github.com/${{ steps.vars.outputs.target_org }}/${{ steps.vars.outputs.bundle_repo }}.git adik-bundle --depth 1
+          cp -r adik-bundle/. /path/to/your/project/
+          rm -rf adik-bundle
+          ```
+
+          Then open `ADIK.md` in your AI assistant and follow the startup protocol.
+
+          ## Non-Interactive / CI Mode
+
+          Set `ADIK_NON_INTERACTIVE=true` and `ADIK_STARTUP_MODE=blanket` in your environment
+          to skip the interactive startup prompt when running ADIK in a CI/CD pipeline.
+
+          ## Ejecting ADIK
+
+          ```bash
+          python3 scripts/adik-eject.py --target . --dry-run   # preview
+          python3 scripts/adik-eject.py --target . --confirm    # execute
+          ```
+
+          ---
+          *Generated by ADIK Self-Deploy workflow — adik-self-deploy.yml*
+          EOF
+
+          echo "bundle_dir=${BUNDLE_DIR}" >> "$GITHUB_OUTPUT"
+          echo "Bundle assembled at ${BUNDLE_DIR}"
+          ls -la "${BUNDLE_DIR}"
+
+      # -----------------------------------------------------------------------
+      # 4. Create or update the bundle repository via GitHub API
+      # -----------------------------------------------------------------------
+      - name: Create bundle repository (if it does not exist)
+        env:
+          GH_TOKEN: ${{ secrets.ADIK_DEPLOY_TOKEN }}
+          TARGET_ORG: ${{ steps.vars.outputs.target_org }}
+          BUNDLE_REPO: ${{ steps.vars.outputs.bundle_repo }}
+          VISIBILITY: ${{ steps.vars.outputs.visibility }}
+        run: |
+          # Check if the repo already exists
+          STATUS=$(gh api "repos/${TARGET_ORG}/${BUNDLE_REPO}" --silent 2>&1 && echo "exists" || echo "missing")
+
+          if [ "${STATUS}" = "missing" ]; then
+            echo "Creating repository ${TARGET_ORG}/${BUNDLE_REPO} (${VISIBILITY})..."
+            gh repo create "${TARGET_ORG}/${BUNDLE_REPO}" \
+              --description "ADIK bundle — auto-deployed from ${{ github.repository }}" \
+              "--${VISIBILITY}"
+            echo "Repository created."
+          else
+            echo "Repository ${TARGET_ORG}/${BUNDLE_REPO} already exists — will update."
+          fi
+
+      # -----------------------------------------------------------------------
+      # 5. Push bundle to the target repository
+      # -----------------------------------------------------------------------
+      - name: Push bundle to target repository
+        env:
+          GH_TOKEN: ${{ secrets.ADIK_DEPLOY_TOKEN }}
+          TARGET_ORG: ${{ steps.vars.outputs.target_org }}
+          BUNDLE_REPO: ${{ steps.vars.outputs.bundle_repo }}
+          VERSION: ${{ steps.vars.outputs.version }}
+          BUNDLE_DIR: ${{ steps.bundle.outputs.bundle_dir }}
+        run: |
+          # Configure git
+          git config --global user.name  "ADIK Self-Deploy Bot"
+          git config --global user.email "adik-bot@noreply.github.com"
+
+          # Clone the bundle repository
+          DEST="${RUNNER_TEMP}/adik-deploy-target"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${TARGET_ORG}/${BUNDLE_REPO}.git" \
+            "${DEST}" || git init "${DEST}"
+
+          cd "${DEST}"
+
+          # Remove old bundle files (keep .git)
+          find . -mindepth 1 -not -path './.git*' -delete 2>/dev/null || true
+
+          # Copy new bundle
+          cp -r "${BUNDLE_DIR}/." .
+
+          # Commit
+          git add -A
+          git diff --cached --quiet && echo "No changes to commit." && exit 0
+
+          git commit -m "chore: deploy ADIK bundle ${VERSION} from ${{ github.repository }}@${{ github.sha }}"
+          git push origin HEAD:main
+
+          # Tag the release
+          git tag -f "${VERSION}"
+          git push origin "${VERSION}" --force
+
+          echo "Bundle deployed to ${TARGET_ORG}/${BUNDLE_REPO}@${VERSION}"
+
+      # -----------------------------------------------------------------------
+      # 6. Verify deployment
+      # -----------------------------------------------------------------------
+      - name: Verify deployment
+        env:
+          GH_TOKEN: ${{ secrets.ADIK_DEPLOY_TOKEN }}
+          TARGET_ORG: ${{ steps.vars.outputs.target_org }}
+          BUNDLE_REPO: ${{ steps.vars.outputs.bundle_repo }}
+          VERSION: ${{ steps.vars.outputs.version }}
+        run: |
+          echo "=== Deployment Verification ==="
+          echo "Repository: https://github.com/${TARGET_ORG}/${BUNDLE_REPO}"
+          echo "Tag:        ${VERSION}"
+          echo ""
+          echo "Required files:"
+          for f in ADIK.md Registry.md Registry.index.md agents/builder.agent.md \
+                   agents/codebase-analyst.agent.md skills/sdk-builder.skill.md \
+                   skills/sdk-consumer.skill.md skills/vectorize.skill.md \
+                   skills/registry-validator.skill.md skills/sdk-builder-tier2.skill.md \
+                   mcp/adik-mcp-server.md scripts/adik-embed.py scripts/adik-eject.py; do
+            STATUS=$(gh api "repos/${TARGET_ORG}/${BUNDLE_REPO}/contents/${f}" \
+              --jq '.name' 2>/dev/null && echo "OK" || echo "MISSING")
+            echo "  ${f}: ${STATUS}"
+          done
+          echo ""
+          echo "Deployment complete."
+
+      # -----------------------------------------------------------------------
+      # 7. Post deployment summary
+      # -----------------------------------------------------------------------
+      - name: Post deployment summary
+        run: |
+          echo "## ADIK Bundle Deployed 🚀" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Bundle repo | [\`${{ steps.vars.outputs.target_org }}/${{ steps.vars.outputs.bundle_repo }}\`](https://github.com/${{ steps.vars.outputs.target_org }}/${{ steps.vars.outputs.bundle_repo }}) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | \`${{ steps.vars.outputs.version }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Source commit | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Triggered by | ${{ github.actor }} |" >> "$GITHUB_STEP_SUMMARY"

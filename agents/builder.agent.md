@@ -3,24 +3,37 @@
 > **Role:** SDK Builder
 > **Type:** Orchestrator Agent
 > **Invoked by:** `ADIK.md`
-> **Delegates to:** `skills/sdk-builder.skill.md`, `skills/sdk-consumer.skill.md`
+> **Delegates to:** `skills/registry-validator.skill.md`, `skills/sdk-builder.skill.md`,
+> `skills/sdk-builder-tier2.skill.md` (opt-in), `skills/sdk-consumer.skill.md`
 
 ---
 
 ## Purpose
 
-The Builder Agent is the primary execution agent of the ADIK framework. It reads the fully populated `Registry.md`, determines the generation strategy based on `projectType`, and coordinates the SDK Builder and SDK Consumer skills to produce complete, publish-ready SDK packages in every configured target language.
+The Builder Agent is the primary execution agent of the ADIK framework. It reads the fully
+populated Registry (monolithic or partitioned), validates it via the Registry Validator Skill,
+then coordinates the SDK Builder and SDK Consumer skills to produce complete, publish-ready SDK
+packages in every configured target language — including optional tier-2 languages (Go, Java,
+Kotlin).
 
 ---
 
 ## Responsibilities
 
-1. **Validate the Registry** — ensure `Registry.md` is populated and internally consistent before proceeding.
-2. **Select generation strategy** — choose API, service, or library SDK templates based on `projectType` from the registry metadata.
-3. **Invoke the SDK Builder Skill** — once per target language (TypeScript, Python, C#).
-4. **Invoke the SDK Consumer Skill** — to generate consumption boilerplate for each target language.
-5. **Emit a build report** — a structured summary of all artifacts produced, written to `sdk/BUILD_REPORT.md`.
-6. **Update `agents.md`** — append or update the ADIK integration block in the repository root `agents.md`.
+1. **Resolve registry** — determine whether to use `Registry.md` (monolithic) or
+   `Registry.index.md` + partitions based on `adik.config.json.registryMode` or file presence.
+2. **Validate the Registry** — invoke `skills/registry-validator.skill.md` before any generation.
+   Abort if the validator returns `FAIL`.
+3. **Select generation strategy** — choose API, service, or library SDK templates based on
+   `projectType` from the registry metadata.
+4. **Invoke the SDK Builder Skill (tier-1)** — once per language in `sdkLanguages`
+   (TypeScript, Python, C#).
+5. **Invoke the SDK Builder Tier-2 Skill (opt-in)** — once per language in `tier2Languages`
+   (Go, Java, Kotlin) when configured in `adik.config.json`.
+6. **Invoke the SDK Consumer Skill** — to generate consumption boilerplate for each target language.
+7. **Emit a build report** — a structured summary of all artifacts produced (`sdk/BUILD_REPORT.md`).
+8. **Run self-embedding** — invoke `python3 scripts/adik-embed.py --action upsert --target .`
+   to update the ADIK context blocks in `agents.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`.
 
 ---
 
@@ -28,11 +41,12 @@ The Builder Agent is the primary execution agent of the ADIK framework. It reads
 
 | Input | Source | Required |
 |---|---|---|
-| `Registry.md` | Repository root | Yes |
+| `Registry.md` or `Registry.index.md` | Repository root | Yes (one of these) |
 | `adik.config.json` | Repository root | No (defaults apply) |
 | `adik.env.json` | Repository root | No (document mode if absent) |
 | `projectType` | Registry metadata | Yes |
 | `sdkLanguages` | Config or Registry metadata | Yes |
+| `tier2Languages` | Config | No (default: empty — no tier-2) |
 | `outputDir` | Config | No (default: `./sdk`) |
 
 ---
@@ -41,41 +55,63 @@ The Builder Agent is the primary execution agent of the ADIK framework. It reads
 
 | Output | Path | Description |
 |---|---|---|
+| Validation report | `sdk/VALIDATION_REPORT.md` | Registry validation result |
 | TypeScript SDK | `sdk/typescript/` | Full TS package with types, client, and helpers |
 | Python SDK | `sdk/python/` | Python package with dataclasses, client, and helpers |
 | C# SDK | `sdk/csharp/` | .NET package with models, client, and helpers |
+| Go SDK | `sdk/go/` | Go module (opt-in; requires `tier2Languages: [go]`) |
+| Java SDK | `sdk/java/` | Java package (opt-in; requires `tier2Languages: [java]`) |
+| Kotlin SDK | `sdk/kotlin/` | Kotlin package (opt-in; requires `tier2Languages: [kotlin]`) |
 | Build report | `sdk/BUILD_REPORT.md` | Summary of all generated artifacts |
-| Updated `agents.md` | `agents.md` (repo root) | ADIK integration block |
 
 ---
 
 ## Execution Protocol
 
 ```
-1. LOAD Registry.md
-   ├─ ASSERT metadata.projectType is set
-   ├─ ASSERT metadata.lastAnalysedCommit is set
-   └─ ASSERT at least one section (Endpoints, Classes, or Functions) is non-empty
+1. RESOLVE registry
+   IF Registry.index.md exists OR config.registryMode = "partitioned":
+     registry = Registry.index.md   (partitioned mode)
+   ELSE:
+     registry = Registry.md          (monolithic mode)
 
-2. READ adik.env.json (if present) to determine vectorMode
+2. ASSERT registry exists
+   IF missing → ABORT and prompt user to run codebase-analyst first
 
-3. FOR EACH language IN config.sdkLanguages:
+3. INVOKE skills/registry-validator.skill.md
+   inputs: { registry, outputDir }
+   IF exitStatus = "FAIL" → ABORT; log path to sdk/VALIDATION_REPORT.md
+   IF exitStatus = "WARN" → continue; note warnings in BUILD_REPORT.md
+
+4. READ adik.env.json (if present) to determine vectorMode and frameworkHints
+
+5. FOR EACH language IN config.sdkLanguages:   ← tier-1
    ├─ INVOKE sdk-builder.skill
-   │    inputs: { registry, language, projectType, outputDir, useVectors: <from adik.env.json> }
+   │    inputs: { registry, language, projectType, outputDir }
    │    outputs: sdk/<language>/
    │
    └─ INVOKE sdk-consumer.skill
-        inputs: { registry, language, projectType, outputDir, useVectors: <from adik.env.json> }
+        inputs: { registry, language, projectType, outputDir, frameworkHints }
         outputs: sdk/<language>/examples/, sdk/<language>/boilerplate/
 
-4. WRITE sdk/BUILD_REPORT.md
+6. IF config.tier2Languages is non-empty:       ← tier-2 (opt-in)
+   FOR EACH language IN config.tier2Languages:
+     INVOKE sdk-builder-tier2.skill
+       inputs: { registry, language, projectType, outputDir,
+                 options: config.tier2Options[language] }
+       outputs: sdk/<language>/
+
+7. WRITE sdk/BUILD_REPORT.md
    ├─ timestamp
    ├─ registry commit SHA
+   ├─ registryMode (monolithic | partitioned)
    ├─ vectorMode (active | inactive)
+   ├─ tier1Languages, tier2Languages
    ├─ list of generated files per language
    └─ any warnings or skipped symbols
 
-5. UPSERT agents.md with ADIK integration block (including Vector store URI)
+8. RUN self-embedding script
+   python3 scripts/adik-embed.py --action upsert --target .
 ```
 
 ---
@@ -86,8 +122,12 @@ The Builder Agent is the primary execution agent of the ADIK framework. It reads
 |---|---|
 | Registry is empty or missing | Abort and prompt user to run `codebase-analyst` first |
 | `projectType` is `auto` | Defer to Codebase Analyst Agent before proceeding |
-| A skill invocation fails | Log error to `BUILD_REPORT.md`, continue with remaining languages |
+| Registry validator returns FAIL | Abort; do not generate any SDK files |
+| A tier-1 skill invocation fails | Log error to `BUILD_REPORT.md`; continue with remaining languages |
+| A tier-2 skill invocation fails | Log error to `BUILD_REPORT.md`; continue; do not abort tier-1 |
+| `tier2Languages` contains unknown language | Log warning; skip that language |
 | Output directory already exists | Merge strategy: overwrite generated files, preserve manually created files |
+| `scripts/adik-embed.py` not found | Log warning; skip self-embedding; note in BUILD_REPORT.md |
 
 ---
 
@@ -95,7 +135,7 @@ The Builder Agent is the primary execution agent of the ADIK framework. It reads
 
 When `syncOnCommit: true` is set in `adik.config.json`, the Builder Agent operates in incremental mode:
 
-1. Compare the current `Registry.md` with the version at `lastAnalysedCommit`.
+1. Compare the current Registry with the version at `lastAnalysedCommit`.
 2. Identify added, modified, and deprecated symbols.
 3. Regenerate only the SDK files that correspond to changed symbols.
 4. Append incremental change notes to `sdk/BUILD_REPORT.md`.
@@ -104,13 +144,23 @@ When `syncOnCommit: true` is set in `adik.config.json`, the Builder Agent operat
 
 ## Invocation Examples
 
-### Full build
+### Full build (tier-1 only)
 
 ```
 @agent builder
 task: build-sdk
 registry: Registry.md
 languages: [typescript, python, csharp]
+```
+
+### Full build with tier-2
+
+```
+@agent builder
+task: build-sdk
+registry: Registry.index.md
+languages: [typescript, python, csharp]
+tier2Languages: [go, java]
 ```
 
 ### Single-language build
@@ -139,9 +189,14 @@ languages: [typescript, python, csharp]
 | File | Role |
 |---|---|
 | `ADIK.md` | Parent orchestrator; defines vector detection and configuration |
-| `Registry.md` | Symbol registry consumed by this agent |
+| `Registry.md` | Symbol registry (monolithic) |
+| `Registry.index.md` | Symbol registry master index (partitioned) |
 | `adik.env.json` | Detected environment capabilities (governs vector mode) |
+| `adik.config.json` | Configuration including `tier2Languages` and `tier2Options` |
 | `agents/codebase-analyst.agent.md` | Upstream agent that populates the registry |
-| `skills/sdk-builder.skill.md` | Delegate skill for SDK code generation |
+| `skills/registry-validator.skill.md` | Registry schema validation (mandatory pre-generation gate) |
+| `skills/sdk-builder.skill.md` | Delegate skill for tier-1 SDK code generation |
+| `skills/sdk-builder-tier2.skill.md` | Delegate skill for tier-2 SDK generation (opt-in) |
 | `skills/sdk-consumer.skill.md` | Delegate skill for consumption boilerplate |
+| `scripts/adik-embed.py` | Self-embedding script (invoked after successful build) |
 | `mcp/adik-mcp-server.md` | MCP server that can trigger this agent remotely |

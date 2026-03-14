@@ -3,7 +3,8 @@
 > **Role:** Codebase Analysis Subagent
 > **Type:** Analysis Agent
 > **Invoked by:** `ADIK.md`
-> **Writes to:** `Registry.md`, `adik.env.json`
+> **Writes to:** `Registry.md` (monolithic) or `Registry.index.md` + `Registry.<domain>.md`
+> (partitioned), `adik.env.json`
 
 ---
 
@@ -23,10 +24,19 @@ This agent does not generate any SDK code. Its responsibilities are accurate, co
 4. **Gather development state** — record all active agents, skills, and configured tools in `adik.env.json` to prevent crosstailing across pipeline runs.
 5. **Discover public symbols** — scan all included source files for exported/public functions, classes, interfaces, enumerations, schemas, and endpoint definitions.
 6. **Parse documentation** — extract inline documentation (JSDoc, docstrings, XML docs, OpenAPI descriptions) to populate symbol descriptions.
-7. **Populate `Registry.md`** — write all discovered symbols into the appropriate registry sections using the canonical YAML format.
-8. **Delegate vectorization** — when vector mode is active (per `adik.env.json`), invoke `skills/vectorize.skill.md` to embed and store all symbol entries and source file chunks.
-9. **Detect drift** — in incremental mode, compare the current source against the last registered commit and emit only changed symbols.
-10. **Flag breaking changes** — mark any removed or signature-changed symbols as deprecated with a note, rather than silently deleting them.
+7. **Populate registry** — write all discovered symbols into the appropriate registry sections
+   using the canonical YAML format. For large codebases, automatically switch to the partitioned
+   model (`Registry.index.md` + `Registry.<domain>.md`) when symbol count or file size exceeds
+   the configured threshold.
+8. **Surface vectorization advisory** — when total symbols ≥ `partitionThresholdSymbols` (default
+   500) and vector mode is not active and the advisory has not been dismissed, emit the
+   vectorization advisory prompt.
+9. **Delegate vectorization** — when vector mode is active (per `adik.env.json`), invoke
+   `skills/vectorize.skill.md` to embed and store all symbol entries and source file chunks.
+10. **Detect drift** — in incremental mode, compare the current source against the last registered
+    commit and emit only changed symbols.
+11. **Flag breaking changes** — mark any removed or signature-changed symbols as deprecated with
+    a note, rather than silently deleting them.
 
 ---
 
@@ -45,9 +55,10 @@ This agent does not generate any SDK code. Its responsibilities are accurate, co
 
 | Output | Description |
 |---|---|
-| Updated `Registry.md` | All discovered symbols written to the canonical registry format |
-| `Project Metadata` section | `projectType`, `sourceLanguage`, `lastAnalysed`, `lastAnalysedCommit`, `vectors.storeUri` (if vectorized) |
-| `adik.env.json` | Detected environment capabilities, active agents/skills, inferred `frameworkHints`, and vector DB availability |
+| Updated `Registry.md` | All discovered symbols written to the canonical registry format (monolithic mode) |
+| Updated `Registry.index.md` + `Registry.<domain>.md` | Domain-partitioned registry files (partitioned mode; auto-triggered by size threshold) |
+| `Project Metadata` section | `projectType`, `sourceLanguage`, `lastAnalysed`, `lastAnalysedCommit`, `registryMode`, `vectors.storeUri` (if vectorized) |
+| `adik.env.json` | Detected environment capabilities, active agents/skills, inferred `frameworkHints`, vector DB availability, and `vectorizationAdvisoryShown` flag |
 
 ---
 
@@ -206,6 +217,44 @@ IF *.java files found AND (pom.xml OR build.gradle) present → "java"
 
 ---
 
+## Registry Partitioning Protocol
+
+When the total discovered symbol count ≥ `partitionThresholdSymbols` (default: 500) **or** the
+combined Registry file size ≥ `partitionThresholdBytes` (default: 200 KB), the agent MUST switch
+to partitioned mode:
+
+```
+1. DETERMINE domain assignment for each symbol:
+   - Group by the first segment of the symbol's namespace
+   - Symbols used by multiple domains → assign to "shared" domain
+   - Example: "payments.transfers.Transfer" → domain "payments"
+
+2. WRITE one Registry.<domain>.md file per domain
+   - Each file uses the same ADIK marker format as Registry.md
+   - Each file has its own Project Metadata and Changelog sections
+
+3. WRITE Registry.index.md
+   - Update the Partition Table with: domain, filename, symbol count, timestamp
+   - Set registryMode = "partitioned" in index metadata
+
+4. CHECK vectorization advisory:
+   IF totalSymbols >= config.partitionThresholdSymbols
+   AND adik.env.json.vectorMode != "active"
+   AND config.vectorizationAdvisoryDismissed != true
+   AND adik.env.json.vectorizationAdvisoryShown != true:
+     EMIT the vectorization advisory prompt (see Registry.index.md)
+     SET adik.env.json.vectorizationAdvisoryShown = true
+```
+
+**Upgrading from monolithic to partitioned:**
+If `Registry.md` already exists and the threshold is now exceeded, the agent:
+1. Reads all entries from the existing `Registry.md`.
+2. Redistributes them into domain partitions as above.
+3. Renames (or archives) the original `Registry.md` to avoid confusion.
+4. Creates `Registry.index.md` pointing to all partitions.
+
+---
+
 ## Execution Protocol
 
 ```
@@ -217,21 +266,37 @@ IF *.java files found AND (pom.xml OR build.gradle) present → "java"
 6. INFER frameworkHints → WRITE to adik.env.json
 7. SCAN source files matching includePatterns, excluding excludePatterns
 8. EXTRACT symbols per language strategy
-9. MERGE symbols into Registry.md
-10. UPDATE Registry.md Project Metadata (projectType, sourceLanguage, timestamps)
-11. IF adik.env.json vectorMode = "active":
+9. COUNT total discovered symbols
+
+10. DETERMINE registryMode:
+    IF config.registryMode = "partitioned"
+    OR totalSymbols >= config.partitionThresholdSymbols
+    OR estimated registry size >= config.partitionThresholdBytes:
+      registryMode = "partitioned"
+    ELSE:
+      registryMode = "monolithic"
+
+11. IF registryMode = "monolithic":
+      MERGE symbols into Registry.md
+      UPDATE Registry.md Project Metadata
+      APPEND Registry.md Changelog entry
+    ELSE (partitioned):
+      APPLY Registry Partitioning Protocol (see above)
+
+12. CHECK and emit vectorization advisory if conditions met
+
+13. IF adik.env.json vectorMode = "active":
       INVOKE skills/vectorize.skill.md
-        inputs: { registry: Registry.md, sourceDir, env: adik.env.json }
-      // All embedding, chunking, and vector-store upsert logic lives in the skill
-12. APPEND Registry.md Changelog entry
-13. REPORT summary (including inferred frameworkHints and staleArtifacts warnings) to ADIK.md
+        inputs: { registry: <registryPath or index>, sourceDir, env: adik.env.json }
+
+14. REPORT summary (including registryMode, inferred frameworkHints, staleArtifacts warnings)
 ```
 
 ---
 
 ## Invocation Examples
 
-### Full analysis (first run)
+### Full analysis (first run, monolithic)
 
 ```
 @agent codebase-analyst
@@ -249,6 +314,15 @@ target: ./src
 output: Registry.md
 vectorStoreUri: http://localhost:8000
 embeddingModel: text-embedding-3-small
+```
+
+### Full analysis with forced partitioned output
+
+```
+@agent codebase-analyst
+task: analyse-and-register
+target: ./src
+output: Registry.index.md
 ```
 
 ### Incremental update (subsequent runs)
@@ -291,8 +365,10 @@ output: adik.env.json
 | File | Role |
 |---|---|
 | `ADIK.md` | Parent orchestrator |
-| `Registry.md` | Output: symbol registry |
+| `Registry.md` | Output: symbol registry (monolithic) |
+| `Registry.index.md` | Output: master index for partitioned registry |
+| `Registry.<domain>.md` | Output: domain-scoped registry partitions |
 | `adik.env.json` | Output: detected environment capabilities, inferred frameworkHints, dev-state snapshot |
-| `adik.config.json` | Configuration (include/exclude patterns, vector options, etc.) |
+| `adik.config.json` | Configuration (include/exclude patterns, vector options, partition thresholds, etc.) |
 | `agents/builder.agent.md` | Downstream agent that consumes the registry |
 | `skills/vectorize.skill.md` | Delegate subskill for all vector embedding and upsert operations |
