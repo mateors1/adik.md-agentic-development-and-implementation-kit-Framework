@@ -1,0 +1,9 @@
+# Python bytecode cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Generated ADIK runtime files (not committed in source repo)
+adik.env.json
+sdk/
+vectors/
