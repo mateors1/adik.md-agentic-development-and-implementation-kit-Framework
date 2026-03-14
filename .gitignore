@@ -1,0 +1,7 @@
+# MkDocs generated site
+site/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
