@@ -1,6 +1,6 @@
 # ADIK.md — Agentic Development and Implementation Kit
 
-> **Version:** 1.1.0
+> **Version:** 2.0.0
 > **Role:** Implementation Orchestrator
 > **Scope:** Deployed into target repositories — drives SDK generation and codebase implementation
 
@@ -37,9 +37,9 @@ Once deployed, ADIK covers the following lifecycle automatically:
 
 | Stage | What ADIK Does |
 |---|---|
-| **Analysis** | Scans the source codebase and populates `Registry.md` with every public symbol |
+| **Analysis** | Scans the source codebase and populates `Registry.md` (or partitioned `Registry.<domain>.md` files) with every public symbol |
 | **Framework inference** | Detects frameworks in use (React, NestJS, FastAPI, etc.) without manual configuration |
-| **SDK generation** | Emits complete, publish-ready packages in TypeScript, Python, and C# |
+| **SDK generation** | Emits complete, publish-ready packages in TypeScript, Python, C#, and optionally Go, Java, or Kotlin (tier-2, opt-in) |
 | **Consumption boilerplate** | Generates idiomatic usage examples, DI wiring, and serialization helpers per framework |
 | **Continuous sync** | Re-runs on every commit, regenerating only what changed |
 | **Vector search** | Optionally embeds the Registry for semantic symbol lookup (when a vector DB is present) |
@@ -86,83 +86,78 @@ On receiving neither: interpret the response as guided requirements and record t
 
 ---
 
-## Self-Embedding Protocol
+## Headless / Non-Interactive Mode
 
-After the first successful run, ADIK.md **must** embed itself into the target project's agentic context files. This ensures that any AI assistant working in the target project is always aware that ADIK is present and active.
+When ADIK runs in a CI/CD pipeline or any environment without a human at the keyboard, the
+interactive startup prompt must be bypassed. ADIK checks the following signals **before** asking
+any startup question:
 
-### Files to Create or Update
+| Signal | Effect |
+|---|---|
+| `ADIK_NON_INTERACTIVE=true` | Skip startup prompt; use `ADIK_STARTUP_MODE` or default to `blanket` |
+| `ADIK_STARTUP_MODE=blanket` | Force blanket mode without prompting |
+| `ADIK_STARTUP_MODE=guided` | Force guided mode; `startupGuidance` must be present in `adik.env.json` |
+| `adik.env.json` already exists | Skip startup prompt; re-apply saved `startupMode` |
+| No TTY detected (CI context) | Warn and default to `blanket`; write `startupMode: "blanket"` to `adik.env.json` |
 
-#### 1. `.github/copilot-instructions.md`
+**Recommended CI configuration:**
 
-Append or create with the following block:
-
-```markdown
-## ADIK — Agentic Development and Implementation Kit
-
-This project uses **ADIK** for automated SDK generation and maintenance.
-
-- **Orchestrator:** `ADIK.md` (implementation orchestrator)
-- **Registry:** `Registry.md` (single source of truth for all public symbols)
-- **Agents:** `agents/builder.agent.md`, `agents/codebase-analyst.agent.md`
-- **Skills:** `skills/sdk-builder.skill.md`, `skills/sdk-consumer.skill.md`, `skills/vectorize.skill.md`
-- **MCP server:** `mcp/adik-mcp-server.md`
-- **Build output:** `sdk/` (TypeScript, Python, C# packages)
-
-**Key rules for Copilot:**
-- Never define a type in the SDK that is not first declared in `Registry.md`.
-- SDK files in `sdk/` are generated — do not edit them directly; update the source and re-run ADIK.
-- To trigger SDK regeneration: `@agent builder task: build-sdk registry: Registry.md`
-- To refresh the registry: `@agent codebase-analyst task: analyse-and-register`
+```yaml
+# In your GitHub Actions workflow or CI script:
+env:
+  ADIK_NON_INTERACTIVE: 'true'
+  ADIK_STARTUP_MODE: 'blanket'
 ```
 
-#### 2. `CLAUDE.md`
+**Recommended `adik.config.json` for CI environments:**
 
-Append or create with the following block:
-
-```markdown
-## ADIK — Agentic Development and Implementation Kit
-
-**Executive Summary:** [filled from ADIK.md Executive Summary — About This Project]
-
-**Orchestrator:** `ADIK.md`
-**Registry:** `Registry.md`
-**SDK output:** `sdk/typescript/`, `sdk/python/`, `sdk/csharp/`
-**ADIK reach:** [filled from detected source patterns and config]
-
-**Key rules:**
-- `Registry.md` is the single source of truth. All public symbols must be declared there.
-- Files in `sdk/` are generated. Do not edit them manually.
-- Run `@agent codebase-analyst task: analyse-and-register` to refresh the registry after source changes.
-- Run `@agent builder task: build-sdk` to regenerate the SDK after registry changes.
+```jsonc
+{
+  "syncOnCommit": true,
+  "nonInteractive": true,        // alternative to env var
+  "startupMode": "blanket"
+}
 ```
 
-#### 3. `agents.md`
+> **Note:** The ADIK self-deploy workflow (`.github/workflows/adik-self-deploy.yml`) sets
+> `ADIK_NON_INTERACTIVE=true` automatically. Teams running ADIK in their own CI pipelines
+> should do the same.
 
-Append or create with the following ADIK integration block (this is also written by the Builder Agent after each successful build):
+---
 
-```markdown
-## ADIK — SDK Orchestrator
+After the first successful run, ADIK.md **must** embed itself into the target project's agentic
+context files. This ensures that any AI assistant working in the target project is always aware
+that ADIK is present and active.
 
-Loaded agents:
-- agents/builder.agent.md
-- agents/codebase-analyst.agent.md
+> **⚠️ Deterministic embedding required.** All three context files use
+> `<!-- ADIK:START -->` / `<!-- ADIK:END -->` XML guard markers. Agents MUST invoke
+> `python3 scripts/adik-embed.py --action upsert --target .` rather than editing these files
+> directly. The script is idempotent — running it multiple times never produces duplicate blocks.
 
-Loaded skills:
-- skills/sdk-builder.skill.md
-- skills/sdk-consumer.skill.md
-- skills/vectorize.skill.md (loaded on demand when vectorMode is active)
+### How to Embed
 
-Registry: Registry.md
-MCP server: mcp/adik-mcp-server.md
-Vector store: <vectorStoreUri or "none">
-SDK output: sdk/ (typescript | python | csharp)
+```bash
+# Insert or update ADIK blocks in all three context files
+python3 scripts/adik-embed.py --action upsert --target .
+
+# Verify all blocks are in place
+python3 scripts/adik-embed.py --action check --target .
 ```
+
+### Files Written
+
+The script creates or updates these three files with an ADIK guard block:
+
+1. **`.github/copilot-instructions.md`** — ADIK rules for GitHub Copilot
+2. **`CLAUDE.md`** — ADIK executive summary and rules for Claude sessions
+3. **`agents.md`** — ADIK agent/skill/registry registration for agentic sessions
 
 ### Embedding Rules
 
-- **Never overwrite** the entire file — append the ADIK block, or replace the existing ADIK block if it is already present (identified by the `## ADIK` heading).
-- **Idempotent** — running ADIK multiple times must not produce duplicate blocks.
-- **Minimal footprint** — ADIK only adds its own block; it does not modify other content in these files.
+- **Use the script, not direct text editing.** The script guarantees idempotency.
+- **Never overwrite** the entire file — only the ADIK guard block is updated.
+- **Minimal footprint** — ADIK only writes its own block; all other file content is preserved.
+- **Guard marker format:** `<!-- ADIK:START -->` … `<!-- ADIK:END -->` (exact strings).
 
 ---
 
@@ -174,8 +169,8 @@ ADIK.md is responsible for:
 
 1. **Analysing the source project** to determine its nature (service, API, or library).
 2. **Orchestrating all agents and skills** required to produce SDK artifacts.
-3. **Keeping the Registry up to date** — the single source of truth for all exported symbols.
-4. **Generating SDK packages** in TypeScript, Python, and C# that stay in sync with every new feature.
+3. **Keeping the Registry up to date** — the single source of truth for all exported symbols; supports both monolithic and partitioned (`Registry.index.md` + `Registry.<domain>.md`) models.
+4. **Generating SDK packages** in TypeScript, Python, and C# (tier-1), and optionally Go, Java, or Kotlin (tier-2, opt-in).
 5. **Producing consumption artifacts** (classes, serialization helpers, boilerplate) for downstream consumers.
 6. **Exposing an MCP server** so the ADIK can be driven from any agentic environment in the target codebase.
 7. **Integrating cleanly with the host repository's `agents.md`** so all context and skills persist.
@@ -279,20 +274,35 @@ ADIK.md
   │         └── [opt] Vectorize Skill → embed Registry + codebase (if vector env active)
   │                   (skills/vectorize.skill.md)
   │
-  ├─► [1] Codebase Analyst Agent      → analyse repo, populate Registry.md
+  ├─► [1] Codebase Analyst Agent      → analyse repo, populate Registry.md (or partitions)
   │         (agents/codebase-analyst.agent.md)
+  │         output: Registry.md | Registry.index.md + Registry.<domain>.md files
+  │         → surfaces vectorization advisory if total symbols ≥ 500
   │
-  ├─► [2] Builder Agent               → reads Registry.md, delegates to skills
+  ├─► [2] Registry Validator Skill    → validate Registry schema before generation
+  │         (skills/registry-validator.skill.md)
+  │         output: sdk/VALIDATION_REPORT.md
+  │         → FAIL aborts SDK generation
+  │
+  ├─► [3] Builder Agent               → reads Registry, delegates to skills
   │         (agents/builder.agent.md)
   │         │
-  │         ├─► SDK Builder Skill     → emits TS / Python / C# SDK packages
+  │         ├─► SDK Builder Skill     → emits TS / Python / C# SDK packages (tier-1)
   │         │     (skills/sdk-builder.skill.md)
+  │         │
+  │         ├─► SDK Builder Tier-2    → emits Go / Java / Kotlin packages (opt-in)
+  │         │     (skills/sdk-builder-tier2.skill.md)
+  │         │     only invoked when tier2Languages is configured in adik.config.json
   │         │
   │         └─► SDK Consumer Skill    → emits boilerplate, classes, serializers
   │               (skills/sdk-consumer.skill.md)
   │               (uses inferred frameworkHints from adik.env.json)
   │
-  └─► [3] MCP Server                  → exposes ADIK capabilities to external agents
+  ├─► [4] Self-Embedding              → inject ADIK context into project files
+  │         python3 scripts/adik-embed.py --action upsert --target .
+  │         files: .github/copilot-instructions.md, CLAUDE.md, agents.md
+  │
+  └─► [5] MCP Server                  → exposes ADIK capabilities to external agents
             (mcp/adik-mcp-server.md)
 ```
 
@@ -312,7 +322,7 @@ The result is written to `adik.env.json` and referenced throughout the pipeline:
 - **`frameworkHints`** — inferred target frameworks for the SDK Consumer Skill.
 - **`staleArtifacts`** — any SDK directories or registry entries that conflict with the current config.
 
-### Step 1 — Codebase Analysis
+### Step 1 — Codebase Analysis and Registry Population
 
 Invoke the **Codebase Analyst Agent**:
 
@@ -320,27 +330,55 @@ Invoke the **Codebase Analyst Agent**:
 @agent codebase-analyst
 task: analyse-and-register
 target: <path-to-source-repo>
-output: Registry.md
+output: Registry.md          # or Registry.index.md for large codebases
 ```
 
-The agent scans all source files, identifies every public symbol (functions, classes, interfaces, schemas, enumerations, endpoints), and writes them to `Registry.md` in the canonical format. When `adik.env.json.vectorMode = "active"`, it invokes `skills/vectorize.skill.md` to embed and store all entries.
+The agent scans all source files, identifies every public symbol, and writes them to the
+registry. For large codebases (≥ 500 symbols or ≥ 200 KB), it writes domain-partitioned
+`Registry.<domain>.md` files and a master `Registry.index.md`, then surfaces the vectorization
+advisory if vector mode is not active.
 
-### Step 2 — SDK Generation
+### Step 2 — Registry Validation
 
-Invoke the **Builder Agent** once the registry is populated:
+Before SDK generation, the Builder Agent invokes the **Registry Validator Skill**:
+
+```
+@skill registry-validator
+registry: Registry.md    # or Registry.index.md
+outputDir: ./sdk
+```
+
+Validation must report `PASS` or `WARN` before proceeding. A `FAIL` result aborts SDK
+generation and instructs the developer to fix the registry or re-run the analyst.
+
+### Step 3 — SDK Generation
+
+Invoke the **Builder Agent** once validation passes:
 
 ```
 @agent builder
 task: build-sdk
 registry: Registry.md
-languages: [typescript, python, csharp]
+languages: [typescript, python, csharp]      # tier-1
+tier2Languages: [go, java]                   # opt-in; omit if not needed
 ```
 
-The builder reads `adik.env.json.frameworkHints` and passes them to `sdk-consumer.skill.md`. Explicit `frameworkHints` in the invocation always override inferred values.
+The builder reads `adik.env.json.frameworkHints` and passes them to `sdk-consumer.skill.md`.
+When `tier2Languages` is configured, it invokes `skills/sdk-builder-tier2.skill.md` for each
+tier-2 language after completing tier-1 generation.
 
-### Step 3 — Continuous Sync
+### Step 4 — Self-Embedding
 
-Every time new functionality is merged into the source repo, ADIK.md triggers a re-run of steps 0–2:
+After a successful build, ADIK deterministically updates the three context files:
+
+```bash
+python3 scripts/adik-embed.py --action upsert --target .
+```
+
+### Step 5 — Continuous Sync
+
+Every time new functionality is merged into the source repo, ADIK.md triggers a re-run of
+steps 0–3 (and 4 if context files have changed):
 
 ```
 @agent codebase-analyst
@@ -349,35 +387,19 @@ since: <last-registry-commit-sha>
 output: Registry.md
 ```
 
-Only changed symbols trigger incremental SDK regeneration. Changed embeddings are upserted incrementally via the Vectorize Skill.
+Only changed symbols trigger incremental SDK regeneration. Changed embeddings are upserted
+incrementally via the Vectorize Skill.
 
 ---
 
 ## Integration with `agents.md`, `CLAUDE.md`, and Copilot Instructions
 
-After the first successful run, ADIK.md follows the **Self-Embedding Protocol** above to inject its presence into the three context files. The Builder Agent is responsible for the `agents.md` upsert; ADIK.md itself handles `CLAUDE.md` and `.github/copilot-instructions.md`.
+After the first successful run, ADIK.md follows the **Self-Embedding Protocol** above to inject its presence into the three context files via `scripts/adik-embed.py`. The Builder Agent is responsible for triggering the script; the script itself handles all three files atomically.
 
-The full ADIK integration block written to `agents.md` is:
-
-```markdown
-## ADIK — SDK Orchestrator
-
-Loaded agents:
-- agents/builder.agent.md
-- agents/codebase-analyst.agent.md
-
-Loaded skills:
-- skills/sdk-builder.skill.md
-- skills/sdk-consumer.skill.md
-- skills/vectorize.skill.md (loaded on demand when vectorMode is active)
-
-Registry: Registry.md
-MCP server: mcp/adik-mcp-server.md
-Vector store: <vectorStoreUri or "none">
-SDK output: sdk/ (typescript | python | csharp)
-```
-
-This ensures all ADIK agents and skills are available in any agentic session that loads the repository.
+The full ADIK integration block written to `agents.md` is managed by `scripts/adik-embed.py`.
+The script renders the block from the current `adik.config.json` and `adik.env.json` values and
+inserts it between `<!-- ADIK:START -->` and `<!-- ADIK:END -->` markers — idempotently, on every
+successful build.
 
 ---
 
@@ -386,13 +408,17 @@ This ensures all ADIK agents and skills are available in any agentic session tha
 ```
 <target-repo>/
 ├── ADIK.md                          ← this file (implementation orchestrator)
-├── Registry.md                      ← DRY symbol registry
+├── Registry.md                      ← DRY symbol registry (monolithic for small projects)
+├── Registry.index.md                ← (auto-created) master index when registry is partitioned
+├── Registry.<domain>.md             ← (auto-created) domain-scoped registry partitions
 ├── adik.config.json                 ← (optional) configuration
 ├── adik.env.json                    ← (auto-generated) env capabilities, frameworkHints, dev state
 ├── CLAUDE.md                        ← (created/updated) ADIK context for Claude sessions
 ├── agents.md                        ← (created/updated) agent/skill registry for agentic sessions
 ├── .github/
-│   └── copilot-instructions.md      ← (created/updated) ADIK context for GitHub Copilot
+│   ├── copilot-instructions.md      ← (created/updated) ADIK context for GitHub Copilot
+│   └── workflows/
+│       └── adik-self-deploy.yml     ← (optional) CI/CD self-deploy workflow
 ├── vectors/                         ← (optional) bundled or generated vector embeddings
 │   ├── registry.vec                 ← Registry embeddings (NDJSON; see vectorize.skill.md)
 │   └── codebase.vec                 ← Codebase embeddings (NDJSON; see vectorize.skill.md)
@@ -400,9 +426,14 @@ This ensures all ADIK agents and skills are available in any agentic session tha
 │   ├── builder.agent.md             ← SDK builder agent
 │   └── codebase-analyst.agent.md   ← codebase analysis + env probe + framework inference
 ├── skills/
-│   ├── sdk-builder.skill.md         ← SDK code-generation skill
+│   ├── sdk-builder.skill.md         ← SDK code-generation skill (TypeScript, Python, C#)
+│   ├── sdk-builder-tier2.skill.md   ← Tier-2 SDK skill (Go, Java, Kotlin — opt-in)
 │   ├── sdk-consumer.skill.md        ← consumption boilerplate skill
+│   ├── registry-validator.skill.md  ← Registry schema validation (runs before every build)
 │   └── vectorize.skill.md           ← vector embedding + upsert subskill (loaded on demand)
+├── scripts/
+│   ├── adik-embed.py                ← deterministic self-embedding script
+│   └── adik-eject.py                ← clean uninstall / eject script
 └── mcp/
     └── adik-mcp-server.md           ← MCP server definition
 ```
@@ -416,11 +447,36 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
 ```jsonc
 {
   "projectType": "auto",            // "auto" | "api" | "service" | "library"
-  "sdkLanguages": ["typescript", "python", "csharp"],
+  "sdkLanguages": ["typescript", "python", "csharp"],   // tier-1 (always available)
+  "tier2Languages": [],             // opt-in: [] | ["go"] | ["java"] | ["kotlin"] | any combination
+  "tier2Options": {
+    "go": {
+      "modulePath": "",             // e.g. "github.com/acme/myapi-sdk-go"
+      "goVersion": "1.21"
+    },
+    "java": {
+      "groupId": "",                // e.g. "com.acme"
+      "artifactId": "",             // e.g. "myapi-sdk"
+      "javaVersion": "17",
+      "buildTool": "maven"          // "maven" | "gradle"
+    },
+    "kotlin": {
+      "groupId": "",
+      "artifactId": "",
+      "javaVersion": "17",
+      "buildTool": "gradle"
+    }
+  },
   "outputDir": "./sdk",
   "registryPath": "./Registry.md",
+  "registryMode": "auto",           // "auto" | "monolithic" | "partitioned"
+  "partitionThresholdSymbols": 500, // trigger partitioned mode above this symbol count
+  "partitionThresholdBytes": 204800, // or above this file size (200 KB)
+  "vectorizationAdvisoryDismissed": false,  // set true to suppress advisory
   "mcpPort": 3100,
   "syncOnCommit": true,             // re-run analysis on every commit
+  "nonInteractive": false,          // true = headless mode (no startup prompt)
+  "startupMode": "blanket",         // "blanket" | "guided" (used in non-interactive mode)
   "includePatterns": ["src/**/*"],
   "excludePatterns": ["**/*.test.*", "**/*.spec.*"],
   "vectors": {
@@ -428,10 +484,7 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
     "autoDetect": true,             // probe environment for vector DB / RAG capabilities
     "preferVectors": true,          // use vector search over document parsing when available
     "storeUri": "",                 // explicit vector store URI (overrides auto-detection)
-    "embeddingModel": "auto",       // embedding model; "auto" selects the first available:
-                                    //   1. model named in VECTOR_EMBEDDING_MODEL env var
-                                    //   2. provider default (e.g. text-embedding-3-small for OpenAI)
-                                    //   3. local model if no remote provider is detected
+    "embeddingModel": "auto",       // "auto" | explicit model name
     "chunkStrategy": "symbol"       // "symbol" | "file" | "sliding-window"
   }
 }
@@ -441,7 +494,7 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
 
 ## Constraints and Principles
 
-- **DRYness is enforced through the Registry.** No SDK artifact may define a type or schema that is not first declared in `Registry.md`.
+- **DRYness is enforced through the Registry.** No SDK artifact may define a type or schema that is not first declared in `Registry.md` (or the appropriate domain partition).
 - **ADIK.md never modifies source code.** It only generates SDK output directories and agentic artifact files.
 - **Language-specific output is self-contained.** Each generated SDK package includes its own `README`, type definitions, and serialization helpers so it can be published independently.
 - **The MCP server is optional.** Teams that do not need remote orchestration can omit the MCP component entirely.
@@ -450,8 +503,46 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
 - **Vectorization is a subskill.** All vector-store interactions are isolated in `skills/vectorize.skill.md`. The orchestrator and agents never contain embedding or chunking logic directly.
 - **frameworkHints are inferred, not required.** If the caller does not supply hints, the Codebase Analyst Agent infers them from `architecture.md`, package manifests, and existing agent/skill files.
 - **Crosstailing is prevented by state tracking.** Each run records a dev-state snapshot in `adik.env.json` so the next run can detect and report stale artifacts before writing anything.
-- **Self-embedding is mandatory.** After the first successful run, ADIK must create or update `.github/copilot-instructions.md`, `CLAUDE.md`, and `agents.md` in the target project so any AI assistant working in that project is always aware that ADIK is active.
+- **Self-embedding is deterministic and idempotent.** After the first successful run, `scripts/adik-embed.py` writes ADIK guard blocks into `.github/copilot-instructions.md`, `CLAUDE.md`, and `agents.md`. Running the script multiple times is safe — it replaces the existing block rather than appending.
 - **Implementation mode is recorded.** The startup mode (`blanket` or `guided`) and any guidance provided is saved in `adik.env.json` and re-applied on subsequent runs.
+- **Tier-2 languages are strictly opt-in.** Go, Java, and Kotlin SDK generation is disabled by default. Enable by listing languages in `adik.config.json` `tier2Languages`.
+- **Registry validation is mandatory before SDK generation.** The Registry Validator Skill must report `PASS` or `WARN` before the Builder Agent proceeds. A `FAIL` result aborts the run.
+- **Registry partitioning is automatic.** For large projects, the Codebase Analyst Agent automatically switches from a monolithic `Registry.md` to a partitioned `Registry.index.md` + domain files model. This is transparent to downstream agents and skills.
+
+---
+
+## Eject Protocol
+
+To remove ADIK cleanly from a target repository:
+
+```bash
+# Preview what would be removed (no changes made)
+python3 scripts/adik-eject.py --target . --dry-run
+
+# Eject ADIK framework files (preserves generated sdk/)
+python3 scripts/adik-eject.py --target . --confirm
+
+# Eject everything including generated SDKs
+python3 scripts/adik-eject.py --target . --confirm --remove-sdk
+```
+
+**Non-interactive / CI eject:**
+
+```bash
+ADIK_EJECT=true python3 scripts/adik-eject.py --target .
+ADIK_EJECT=true ADIK_EJECT_SDK=true python3 scripts/adik-eject.py --target .
+```
+
+What the eject script removes:
+- ADIK framework files: `ADIK.md`, `Registry.md`, `Registry.index.md`, `Registry.*.md`, `adik.env.json`, `adik.config.json`
+- ADIK directories: `agents/`, `skills/`, `mcp/`, `vectors/`, `scripts/`
+- ADIK context blocks from: `.github/copilot-instructions.md`, `CLAUDE.md`, `agents.md` (blocks only — file content outside the guard markers is preserved)
+- Generated `sdk/` directory (only with `--remove-sdk`)
+
+What the eject script **never** touches:
+- Source code files
+- Any file content outside an ADIK guard block
+- Repository-level configuration (`.git/`, CI workflows unrelated to ADIK)
 
 ---
 
@@ -459,16 +550,23 @@ ADIK.md reads configuration from the optional `adik.config.json` file in the rep
 
 | File | Role |
 |---|---|
-| `Registry.md` | Single source of truth for all exported symbols |
-| `adik.config.json` | Configuration including vector options |
+| `Registry.md` | Single source of truth for all exported symbols (monolithic) |
+| `Registry.index.md` | Master index for partitioned registries (auto-created for large projects) |
+| `Registry.<domain>.md` | Domain-scoped registry partition (auto-created) |
+| `adik.config.json` | Configuration including vector options, tier-2 languages, registry mode |
 | `adik.env.json` | Auto-generated: env capabilities, inferred frameworkHints, dev-state snapshot, startupMode |
 | `CLAUDE.md` | Created/updated: ADIK context for Claude-based sessions |
 | `agents.md` | Created/updated: agent and skill registry for agentic sessions |
 | `.github/copilot-instructions.md` | Created/updated: ADIK context for GitHub Copilot |
+| `.github/workflows/adik-self-deploy.yml` | CI/CD self-deployment workflow (optional) |
 | `vectors/` | Bundled or generated vector embeddings (optional; managed by vectorize.skill.md) |
 | `agents/codebase-analyst.agent.md` | Env probe, framework inference, dev-state check, symbol analysis |
 | `agents/builder.agent.md` | Orchestrates SDK generation across languages |
-| `skills/sdk-builder.skill.md` | Generates SDK packages per language |
+| `skills/sdk-builder.skill.md` | Generates tier-1 SDK packages (TypeScript, Python, C#) |
+| `skills/sdk-builder-tier2.skill.md` | Generates tier-2 SDK packages (Go, Java, Kotlin — opt-in) |
 | `skills/sdk-consumer.skill.md` | Generates framework-idiomatic consumption boilerplate |
+| `skills/registry-validator.skill.md` | Validates Registry schema before every SDK generation run |
 | `skills/vectorize.skill.md` | Handles all vector embedding and upsert operations |
+| `scripts/adik-embed.py` | Deterministic self-embedding script (manages ADIK guard blocks) |
+| `scripts/adik-eject.py` | Clean uninstall / eject script |
 | `mcp/adik-mcp-server.md` | MCP server for external agent integration |

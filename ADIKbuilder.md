@@ -1,6 +1,6 @@
 # ADIKbuilder.md — Agentic Development and Implementation Kit Builder
 
-> **Version:** 1.1.0
+> **Version:** 2.0.0
 > **Role:** Source-Repo Orchestrator
 > **Scope:** This file lives exclusively in the `adik.md-agentic-development-and-implementation-kit` source repository and governs the development, validation, and release of the ADIK framework itself. It is **not** part of the deployable bundle.
 
@@ -38,14 +38,20 @@ The following files are assembled into the ADIK bundle and copied into target re
 ```
 adik-bundle/
 ├── ADIK.md                          ← Implementation orchestrator
-├── Registry.md                      ← DRY symbol registry template
+├── Registry.md                      ← DRY symbol registry template (monolithic)
+├── Registry.index.md                ← Partitioned registry master index template
 ├── agents/
 │   ├── builder.agent.md
 │   └── codebase-analyst.agent.md
 ├── skills/
 │   ├── sdk-builder.skill.md
+│   ├── sdk-builder-tier2.skill.md   ← Tier-2 SDK skill (Go, Java, Kotlin — opt-in)
 │   ├── sdk-consumer.skill.md
+│   ├── registry-validator.skill.md  ← Registry schema validation skill
 │   └── vectorize.skill.md           ← Vector embedding subskill (loaded on demand)
+├── scripts/
+│   ├── adik-embed.py                ← Deterministic self-embedding script
+│   └── adik-eject.py                ← Clean uninstall / eject script
 └── mcp/
     └── adik-mcp-server.md
 ```
@@ -138,7 +144,7 @@ git clone https://github.com/<org>/<repo-name>.git adik-dist-repo
 cd adik-dist-repo
 
 # Copy only the deployable bundle files (never ADIKbuilder.md or ADIKBuilderExample.md)
-cp -r ../ADIK.md ../Registry.md ../agents ../skills ../mcp .
+cp -r ../ADIK.md ../Registry.md ../Registry.index.md ../agents ../skills ../mcp ../scripts .
 
 # (Optional) copy adik.config.json if a canonical default is provided
 # cp ../adik.config.json .
@@ -170,6 +176,8 @@ Each release is tagged `vX.Y.Z`. To add ADIK to a new repository:
 
 - [ ] Confirm the new repo is visible to the intended teams/members within the organisation.
 - [ ] Confirm `ADIKbuilder.md` and `ADIKBuilderExample.md` are **not** present in the distribution repo.
+- [ ] Confirm `CLAUDE.md`, `agents.md`, and `.github/copilot-instructions.md` are **not** in the distribution repo.
+- [ ] Confirm `Registry.index.md` and `scripts/` **are** present in the distribution repo.
 - [ ] Confirm the `vX.Y.Z` tag resolves to the correct commit.
 - [ ] Share the repository URL with relevant teams.
 
@@ -182,21 +190,30 @@ adik.md-agentic-development-and-implementation-kit/
 ├── ADIKbuilder.md                   ← this file (source-repo orchestrator, not deployed)
 ├── ADIK.md                          ← implementation orchestrator (deployed to target repos)
 ├── Registry.md                      ← DRY symbol registry template
+├── Registry.index.md                ← Partitioned registry master index template
 ├── README.md                        ← manifesto + dual-audience guide
 ├── CLAUDE.md                        ← Claude session context (source repo only)
 ├── agents.md                        ← agent/skill registry for agentic sessions (source repo only)
 ├── .github/
-│   └── copilot-instructions.md      ← GitHub Copilot context (source repo only)
+│   ├── copilot-instructions.md      ← GitHub Copilot context (source repo only)
+│   └── workflows/
+│       └── adik-self-deploy.yml     ← CI/CD self-deployment workflow (source repo)
 ├── docs/
 │   ├── manifesto.md                 ← ADIK philosophy and principles
+│   ├── red-team-audit-v2.md         ← Post-v2.0 red-team audit
 │   └── examples/
 │       └── ADIKBuilderExample.md    ← self-sufficient guide for building your own ADIK (not deployed)
 ├── agents/
 │   ├── builder.agent.md
 │   └── codebase-analyst.agent.md
+├── scripts/
+│   ├── adik-embed.py                ← deterministic self-embedding script
+│   └── adik-eject.py                ← clean uninstall / eject script
 ├── skills/
 │   ├── sdk-builder.skill.md
+│   ├── sdk-builder-tier2.skill.md   ← tier-2 SDK skill (Go, Java, Kotlin — opt-in)
 │   ├── sdk-consumer.skill.md
+│   ├── registry-validator.skill.md  ← registry schema validation skill
 │   └── vectorize.skill.md           ← vector embedding subskill
 └── mcp/
     └── adik-mcp-server.md
@@ -213,6 +230,9 @@ adik.md-agentic-development-and-implementation-kit/
 - **Every agent and skill file must be independently readable.** Each file must be fully actionable by an LLM agent without loading the entire repository.
 - **The Registry format is stable.** Breaking changes to the registry schema require a major version bump.
 - **Vectorization stays in the subskill.** `skills/vectorize.skill.md` is the only file that may contain embedding or vector-store logic.
+- **Self-embedding is deterministic.** `scripts/adik-embed.py` is the only mechanism for writing ADIK guard blocks. LLM agents must not edit context files directly.
+- **Tier-2 languages are opt-in.** `skills/sdk-builder-tier2.skill.md` is only invoked when explicitly listed in `tier2Languages`. It must never be auto-activated.
+- **Registry validation is mandatory.** `skills/registry-validator.skill.md` must be invoked before every SDK generation. No exceptions.
 - **Self-embedding is bidirectional.** `ADIK.md` embeds itself into target projects; `ADIKbuilder.md` maintains the source repository's own context files (`CLAUDE.md`, `agents.md`, `.github/copilot-instructions.md`).
 
 ---
@@ -223,15 +243,22 @@ adik.md-agentic-development-and-implementation-kit/
 |---|---|
 | `ADIK.md` | Implementation orchestrator — deployed to target repositories |
 | `docs/examples/ADIKBuilderExample.md` | Step-by-step guide for building a custom ADIK implementation |
-| `Registry.md` | Symbol registry template |
+| `docs/red-team-audit-v2.md` | Post-v2.0 red-team security and improvement audit |
+| `Registry.md` | Symbol registry template (monolithic) |
+| `Registry.index.md` | Partitioned registry master index template |
 | `README.md` | Manifesto + dual-audience guide |
 | `CLAUDE.md` | Claude session context for this source repository |
 | `agents.md` | Agent and skill registry for agentic sessions in this source repository |
 | `.github/copilot-instructions.md` | GitHub Copilot context for this source repository |
+| `.github/workflows/adik-self-deploy.yml` | CI/CD workflow for self-deploying the bundle as `<reponame>-ADIK` |
 | `docs/manifesto.md` | ADIK philosophy and principles |
 | `agents/builder.agent.md` | SDK builder agent |
 | `agents/codebase-analyst.agent.md` | Codebase analysis + frameworkHints inference + dev-state check |
-| `skills/sdk-builder.skill.md` | SDK code-generation skill |
+| `skills/sdk-builder.skill.md` | Tier-1 SDK code-generation skill (TypeScript, Python, C#) |
+| `skills/sdk-builder-tier2.skill.md` | Tier-2 SDK skill (Go, Java, Kotlin — opt-in) |
 | `skills/sdk-consumer.skill.md` | Consumption boilerplate skill |
+| `skills/registry-validator.skill.md` | Registry schema validation skill |
 | `skills/vectorize.skill.md` | Vector embedding subskill |
+| `scripts/adik-embed.py` | Deterministic self-embedding script |
+| `scripts/adik-eject.py` | Clean uninstall / eject script |
 | `mcp/adik-mcp-server.md` | MCP server definition |

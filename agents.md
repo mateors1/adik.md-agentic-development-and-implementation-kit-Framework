@@ -27,14 +27,19 @@ agents:
     role: SDK Builder
     invoked_by: ADIK.md
     delegates_to:
-      - skills/sdk-builder.skill.md
+      - skills/registry-validator.skill.md  # mandatory pre-generation gate
+      - skills/sdk-builder.skill.md         # tier-1 (TypeScript, Python, C#)
+      - skills/sdk-builder-tier2.skill.md   # tier-2 (Go, Java, Kotlin — opt-in)
       - skills/sdk-consumer.skill.md
+      - scripts/adik-embed.py               # deterministic self-embedding post-build
 
   - file: agents/codebase-analyst.agent.md
-    role: Codebase Analysis, Environment Probe, Framework Hints Inference
+    role: Codebase Analysis, Environment Probe, Framework Hints Inference, Registry Partitioning
     invoked_by: ADIK.md
     writes_to:
-      - Registry.md
+      - Registry.md           # monolithic mode
+      - Registry.index.md     # partitioned mode (auto-triggered by size threshold)
+      - Registry.<domain>.md  # domain partitions (partitioned mode)
       - adik.env.json
     delegates_to:
       - skills/vectorize.skill.md
@@ -47,21 +52,75 @@ agents:
 ```yaml
 skills:
   - file: skills/sdk-builder.skill.md
-    role: SDK Code Generation (TypeScript, Python, C#)
+    role: Tier-1 SDK Code Generation (TypeScript, Python, C#)
     invoked_by: agents/builder.agent.md
-    reads_from: Registry.md
+    reads_from:
+      - Registry.md or Registry.index.md
+
+  - file: skills/sdk-builder-tier2.skill.md
+    role: Tier-2 SDK Code Generation (Go, Java, Kotlin — opt-in)
+    invoked_by: agents/builder.agent.md
+    condition: adik.config.json tier2Languages is non-empty
+    reads_from:
+      - Registry.md or Registry.index.md
+
+  - file: skills/registry-validator.skill.md
+    role: Registry Schema Validation (mandatory pre-generation gate)
+    invoked_by: agents/builder.agent.md
+    reads_from:
+      - Registry.md or Registry.index.md
+    writes_to:
+      - sdk/VALIDATION_REPORT.md
 
   - file: skills/sdk-consumer.skill.md
     role: Framework-idiomatic Consumption Boilerplate
     invoked_by: agents/builder.agent.md
     reads_from:
-      - Registry.md
+      - Registry.md or Registry.index.md
       - adik.env.json (frameworkHints)
 
   - file: skills/vectorize.skill.md
     role: Vector Embedding and Upsert (loaded on demand)
     invoked_by: agents/codebase-analyst.agent.md
     condition: adik.env.json vectorMode == "active"
+```
+
+---
+
+## Scripts
+
+```yaml
+scripts:
+  - file: scripts/adik-embed.py
+    role: Deterministic self-embedding — manages ADIK guard blocks in context files
+    invoked_by: agents/builder.agent.md (post-build)
+    actions: [upsert, remove, check]
+    targets:
+      - .github/copilot-instructions.md
+      - CLAUDE.md
+      - agents.md
+
+  - file: scripts/adik-eject.py
+    role: Clean uninstall / eject — removes all ADIK artefacts from a repository
+    invoked_manually: true
+    supports_ci: true  # ADIK_EJECT=true env var
+    removes:
+      - ADIK framework files and directories
+      - ADIK guard blocks from context files
+      - sdk/ (optional, requires --remove-sdk)
+```
+
+---
+
+## CI/CD Workflows
+
+```yaml
+workflows:
+  - file: .github/workflows/adik-self-deploy.yml
+    role: CI/CD self-deployment — publishes ADIK bundle as <reponame>-ADIK repository
+    triggers: [release published, workflow_dispatch]
+    requires_secret: ADIK_DEPLOY_TOKEN
+    creates_repo: <org>/<reponame>-adik
 ```
 
 ---
@@ -89,18 +148,25 @@ mcp:
 ## Registry
 
 ```yaml
-registry: Registry.md
-format: ADIK symbol registry (ADIK:<SECTION>:START / ADIK:<SECTION>:END markers)
-sections:
-  - Project Metadata
-  - Endpoints
-  - Classes
-  - Interfaces and Types
-  - Schemas
-  - Enumerations
-  - Functions and Methods
-  - Error Catalogue
-  - Changelog
+registry:
+  monolithic: Registry.md
+  partitioned:
+    index: Registry.index.md
+    partitions: Registry.<domain>.md
+  format: ADIK symbol registry (<!-- ADIK:<SECTION>:START --> / <!-- ADIK:<SECTION>:END --> markers)
+  partitionThreshold:
+    symbols: 500
+    bytes: 204800
+  sections:
+    - Project Metadata
+    - Endpoints
+    - Classes
+    - Interfaces and Types
+    - Schemas
+    - Enumerations
+    - Functions and Methods
+    - Error Catalogue
+    - Changelog
 ```
 
 ---
@@ -115,16 +181,25 @@ docs:
   - file: docs/examples/ADIKBuilderExample.md
     role: Step-by-step guide for building a custom ADIK implementation from scratch
     audience: Developers implementing the ADIK pattern independently
+
+  - file: docs/red-team-audit-v2.md
+    role: Post-v2.0 red-team security and improvement audit
+    audience: Security reviewers, framework maintainers
 ```
 
 ---
 
 ## Self-Embedding Note
 
-`ADIK.md` and `ADIKbuilder.md` embed themselves into the agentic context of any project they operate in. When `ADIK.md` is deployed to a target project, it creates or updates:
+`ADIK.md` and `ADIKbuilder.md` embed themselves into the agentic context of any project they
+operate in. When `ADIK.md` is deployed to a target project, `scripts/adik-embed.py` creates or
+updates:
 
 - `.github/copilot-instructions.md` — ADIK project context for GitHub Copilot
 - `CLAUDE.md` — ADIK context for Claude-based sessions
 - `agents.md` — this file structure, populated for the target project
+
+All three files use `<!-- ADIK:START -->` / `<!-- ADIK:END -->` guard markers to ensure
+idempotent, non-duplicating writes.
 
 The files you are reading now serve this same purpose for the ADIK source repository itself.
