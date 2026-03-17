@@ -370,171 +370,56 @@ successful build.
 
 ## File Layout
 
-```
-<target-repo>/
-├── ADIK.md                          ← standard definition (reference)
-├── ADIK.orchestrator.md             ← this file (operational orchestrator)
-├── Registry.md                      ← DRY symbol registry (monolithic for small projects)
-├── Registry.index.md                ← (auto-created) master index when registry is partitioned
-├── Registry.<domain>.md             ← (auto-created) domain-scoped registry partitions
-├── adik.config.json                 ← (optional) configuration
-├── adik.env.json                    ← (auto-generated) env capabilities, frameworkHints, dev state
-├── adik.audit.log                   ← (auto-generated) append-only NDJSON audit trail
-├── CLAUDE.md                        ← (created/updated) ADIK context for Claude sessions
-├── agents.md                        ← (created/updated) agent/skill registry for agentic sessions
-├── .github/
-│   ├── copilot-instructions.md      ← (created/updated) ADIK context for GitHub Copilot
-│   └── workflows/
-│       └── adik-self-deploy.yml     ← (optional) CI/CD self-deploy workflow
-├── vectors/                         ← (optional) bundled or generated vector embeddings
-│   ├── registry.vec                 ← Registry embeddings (NDJSON; see vectorize.skill.md)
-│   └── codebase.vec                 ← Codebase embeddings (NDJSON; see vectorize.skill.md)
-├── agents/
-│   ├── builder.agent.md             ← SDK builder agent
-│   └── codebase-analyst.agent.md   ← codebase analysis + env probe + framework inference
-├── skills/
-│   ├── sdk-builder.skill.md         ← SDK code-generation skill (TypeScript, Python, C#)
-│   ├── sdk-builder-tier2.skill.md   ← Tier-2 SDK skill (Go, Java, Kotlin — opt-in)
-│   ├── sdk-consumer.skill.md        ← consumption boilerplate skill
-│   ├── registry-validator.skill.md  ← Registry schema validation (runs before every build)
-│   └── vectorize.skill.md           ← vector embedding + upsert subskill (loaded on demand)
-├── scripts/
-│   ├── adik-embed.py                ← deterministic self-embedding script
-│   └── adik-eject.py                ← clean uninstall / eject script
-└── mcp/
-    └── adik-mcp-server.md           ← MCP server definition
-```
+> See [`README.md`](README.md) for the full repository structure and [`docs/quickstart-guide.md`](docs/quickstart-guide.md) for a walkthrough.
+
+Key paths the orchestrator writes to:
+
+| Path | Created by |
+|---|---|
+| `Registry.md` / `Registry.<domain>.md` | Codebase Analyst (step 1) |
+| `adik.env.json` | Codebase Analyst (step 0) |
+| `adik.audit.log` | Builder Agent (step 3) |
+| `sdk/<language>/` | Builder Agent (step 3) |
+| `.github/copilot-instructions.md`, `CLAUDE.md`, `agents.md` | Self-Embedding (step 4) |
 
 ---
 
 ## Configuration
 
-The orchestrator reads configuration from the optional `adik.config.json` file in the repository root. If the file is absent, all defaults apply.
+The orchestrator reads `adik.config.json` from the repository root. If absent, all defaults apply.
 
-```jsonc
-{
-  "projectType": "auto",            // "auto" | "api" | "service" | "library"
-  "sdkLanguages": ["typescript", "python", "csharp"],   // tier-1 (always available)
-  "tier2Languages": [],             // opt-in: [] | ["go"] | ["java"] | ["kotlin"] | any combination
-  "tier2Options": {
-    "go": {
-      "modulePath": "",             // e.g. "github.com/acme/myapi-sdk-go"
-      "goVersion": "1.21"
-    },
-    "java": {
-      "groupId": "",                // e.g. "com.acme"
-      "artifactId": "",             // e.g. "myapi-sdk"
-      "javaVersion": "17",
-      "buildTool": "maven"          // "maven" | "gradle"
-    },
-    "kotlin": {
-      "groupId": "",
-      "artifactId": "",
-      "javaVersion": "17",
-      "buildTool": "gradle"
-    }
-  },
-  "outputDir": "./sdk",
-  "registryPath": "./Registry.md",
-  "registryMode": "auto",           // "auto" | "monolithic" | "partitioned"
-  "partitionStrategy": "auto",      // "auto" | "manual" | "file" (controls domain assignment)
-  "partitionMappings": {},           // used when partitionStrategy = "manual"; maps domain → glob patterns
-  "partitionThresholdSymbols": 500, // trigger partitioned mode above this symbol count
-  "partitionThresholdBytes": 204800, // or above this file size (200 KB)
-  "vectorizationAdvisoryDismissed": false,  // set true to suppress advisory
-  "mcpPort": 3100,
-  "syncOnCommit": true,             // re-run analysis on every commit
-  "nonInteractive": false,          // true = headless mode (no startup prompt)
-  "startupMode": "blanket",         // "blanket" | "guided" (used in non-interactive mode)
-  "includePatterns": ["src/**/*"],
-  "excludePatterns": ["**/*.test.*", "**/*.spec.*"],
-  "vectors": {
-    "bundled": false,               // true if embeddings are distributed with this adik
-    "autoDetect": true,             // probe environment for vector DB / RAG capabilities
-    "preferVectors": true,          // use vector search over document parsing when available
-    "storeUri": "",                 // explicit vector store URI (overrides auto-detection)
-    "embeddingModel": "auto",       // "auto" | explicit model name
-    "chunkStrategy": "symbol"       // "symbol" | "file" | "sliding-window"
-  }
-}
+> **Full schema and field reference:** [`docs/configuration.md`](docs/configuration.md)
+
+Key defaults: tier-1 languages `[typescript, python, csharp]`, output to `./sdk`, auto project-type detection, auto registry partitioning above 500 symbols.
+
+---
+
+## Eject
+
+One command removes the entire adik without touching source code:
+
+```bash
+python3 scripts/adik-eject.py --target . --dry-run    # preview
+python3 scripts/adik-eject.py --target . --confirm     # eject (keeps sdk/)
+python3 scripts/adik-eject.py --target . --confirm --remove-sdk  # eject all
 ```
+
+> **Details:** See `scripts/adik-eject.py --help` or [`docs/quickstart-guide.md`](docs/quickstart-guide.md#step-7--eject-if-needed).
 
 ---
 
 ## Operational Constraints
 
-> **Standard contracts** are defined in [`ADIK.md` — Standard Contracts](ADIK.md#standard-contracts). The items below are additional operational rules for the running orchestrator.
+> Standard contracts are in [`ADIK.md` — Standard Contracts](ADIK.md#standard-contracts). Additional operational rules:
 
-- **Language-specific output is self-contained.** Each generated SDK package includes its own `README`, type definitions, and serialization helpers so it can be published independently.
-- **The MCP server is optional.** Teams that do not need remote orchestration can omit the MCP component entirely.
-- **Vector mode degrades gracefully.** When no vector DB is available, the adik falls back to document mode without loss of functionality.
-- **Vectors are never required.** All core functionality works in document mode. Vector mode is an optimisation for large codebases and environments that already invest in RAG infrastructure.
-- **frameworkHints are inferred, not required.** If the caller does not supply hints, the Codebase Analyst Agent infers them from `architecture.md`, package manifests, and existing agent/skill files.
-- **Crosstailing is prevented by state tracking.** Each run records a dev-state snapshot in `adik.env.json` so the next run can detect and report stale artifacts before writing anything.
-- **Implementation mode is recorded.** The startup mode (`blanket` or `guided`) and any guidance provided is saved in `adik.env.json` and re-applied on subsequent runs.
-- **Registry partitioning is automatic.** For large projects, the Codebase Analyst Agent automatically switches from a monolithic `Registry.md` to a partitioned `Registry.index.md` + domain files model. The `partitionStrategy` option (`auto` / `manual` / `file`) controls domain assignment. This is transparent to downstream agents and skills.
-- **Every build is auditable.** The Builder Agent appends a structured NDJSON entry to `adik.audit.log` after each build, recording the commit, registry hash, validation status, and exit status for full traceability.
+- Each SDK package is self-contained (own README, types, serialization helpers).
+- MCP server is optional. Vector mode degrades gracefully. Vectors are never required.
+- `frameworkHints` are inferred automatically; explicit config is optional.
+- Dev-state tracking in `adik.env.json` prevents crosstailing (stale artifact accumulation).
+- Startup mode is recorded and re-applied on subsequent runs.
+- Registry partitioning is automatic and transparent to downstream agents.
+- Every build appends an audit entry to `adik.audit.log` (NDJSON).
 
 ---
 
-## Eject Protocol
-
-To remove the adik cleanly from a target repository:
-
-```bash
-# Preview what would be removed (no changes made)
-python3 scripts/adik-eject.py --target . --dry-run
-
-# Eject ADIK framework files (preserves generated sdk/)
-python3 scripts/adik-eject.py --target . --confirm
-
-# Eject everything including generated SDKs
-python3 scripts/adik-eject.py --target . --confirm --remove-sdk
-```
-
-**Non-interactive / CI eject:**
-
-```bash
-ADIK_EJECT=true python3 scripts/adik-eject.py --target .
-ADIK_EJECT=true ADIK_EJECT_SDK=true python3 scripts/adik-eject.py --target .
-```
-
-What the eject script removes:
-- ADIK framework files: `ADIK.md`, `ADIK.orchestrator.md`, `Registry.md`, `Registry.index.md`, `Registry.*.md`, `adik.env.json`, `adik.config.json`, `adik.audit.log`
-- ADIK directories: `agents/`, `skills/`, `mcp/`, `vectors/`, `scripts/`
-- ADIK context blocks from: `.github/copilot-instructions.md`, `CLAUDE.md`, `agents.md` (blocks only — file content outside the guard markers is preserved)
-- Generated `sdk/` directory (only with `--remove-sdk`)
-
-What the eject script **never** touches:
-- Source code files
-- Any file content outside an ADIK guard block
-- Repository-level configuration (`.git/`, CI workflows unrelated to ADIK)
-
----
-
-## Related Files
-
-| File | Role |
-|---|---|
-| `ADIK.md` | Standard definition — what ADIK is, what an adik is, contracts |
-| `Registry.md` | Single source of truth for all exported symbols (monolithic) |
-| `Registry.index.md` | Master index for partitioned registries (auto-created for large projects) |
-| `Registry.<domain>.md` | Domain-scoped registry partition (auto-created) |
-| `adik.config.json` | Configuration including vector options, tier-2 languages, registry mode |
-| `adik.env.json` | Auto-generated: env capabilities, inferred frameworkHints, dev-state snapshot, startupMode |
-| `adik.audit.log` | Auto-generated: append-only NDJSON build audit trail (one entry per build) |
-| `CLAUDE.md` | Created/updated: ADIK context for Claude-based sessions |
-| `agents.md` | Created/updated: agent and skill registry for agentic sessions |
-| `.github/copilot-instructions.md` | Created/updated: ADIK context for GitHub Copilot |
-| `.github/workflows/adik-self-deploy.yml` | CI/CD self-deployment workflow (optional) |
-| `vectors/` | Bundled or generated vector embeddings (optional; managed by vectorize.skill.md) |
-| `agents/codebase-analyst.agent.md` | Env probe, framework inference, dev-state check, symbol analysis |
-| `agents/builder.agent.md` | Orchestrates SDK generation across languages |
-| `skills/sdk-builder.skill.md` | Generates tier-1 SDK packages (TypeScript, Python, C#) |
-| `skills/sdk-builder-tier2.skill.md` | Generates tier-2 SDK packages (Go, Java, Kotlin — opt-in) |
-| `skills/sdk-consumer.skill.md` | Generates framework-idiomatic consumption boilerplate |
-| `skills/registry-validator.skill.md` | Validates Registry schema before every SDK generation run |
-| `skills/vectorize.skill.md` | Handles all vector embedding and upsert operations |
-| `scripts/adik-embed.py` | Deterministic self-embedding script (manages ADIK guard blocks) |
-| `scripts/adik-eject.py` | Clean uninstall / eject script |
-| `mcp/adik-mcp-server.md` | MCP server for external agent integration |
+> **Related files:** All agent, skill, script, and registry files are listed in [`ADIK.md`](ADIK.md) and [`docs/configuration.md`](docs/configuration.md). For the full file tree, see [`README.md`](README.md#repository-structure).

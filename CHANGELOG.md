@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`scripts/adik-deploy.py`** — factory-side bundle assembly and deployment script (source repo only — not deployed as part of the adik).
 - **`docs/quickstart-guide.md`** — step-by-step deployment guide for new users and evaluators.
+- **`docs/configuration.md`** — full `adik.config.json` schema and field reference (extracted from orchestrator).
 - **GitHub Sponsors** enabled — `❤️ Sponsor` button active on the repository.
 
 ### Changed
@@ -21,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only (terminology, contracts, principles). The operational orchestrator template that ships
   inside every adik is now `ADIK.orchestrator.md`. All cross-references across the repository
   updated accordingly.
+- **`ADIK.orchestrator.md` trimmed by 29%** (6.4K → 4.5K tokens) — configuration schema moved to
+  `docs/configuration.md`, file layout condensed to key-paths table, eject section compressed,
+  related files replaced with pointers. Reduces LLM context burden during pipeline execution.
 
 ## [1.0.0] — 2026-03-16
 

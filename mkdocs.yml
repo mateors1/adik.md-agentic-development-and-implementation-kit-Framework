@@ -39,6 +39,7 @@ nav:
   - Manifesto: manifesto.md
   - Standard:
     - ADIK Standard Specification: standard.md
+    - Configuration Reference: configuration.md
   - Examples:
     - Pre-Deployment Walkthrough: examples/pre-deployment.md
     - "Showcase: Payments API (NestJS)": examples/showcase-payments-api.md
