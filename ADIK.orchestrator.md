@@ -3,7 +3,7 @@
 > **Version:** 1.0.0
 > **Role:** Specialized Orchestrator — the brain inside every adik
 > **Scope:** Deployed as part of every adik into target repositories
-> **Standard:** See [`ADIK.md`](ADIK.md) for the standard definition. See [`docs/standard.md`](docs/standard.md) for the formal specification.
+> **Standard:** See [`ADIK.md`](ADIK.md) for the standard definition. See [`docs/specification/standard.md`](docs/specification/standard.md) for the formal specification.
 
 ---
 
@@ -32,9 +32,50 @@
 
 > **⚠️ REQUIRED STARTUP PROTOCOL**
 >
-> When this orchestrator is first invoked in a new project (i.e., this is the first run and no `adik.env.json` exists), **before taking any implementation action**, it must ask the following question:
+> When this orchestrator is first invoked in a new project (i.e., this is the first run and no `adik.env.json` exists), **before taking any implementation action**, it must perform the following sequence.
+
+### Pre-flight: Empty-Project Detection
+
+Before presenting the startup prompt, the orchestrator **must** scan the target directory for
+user-authored source files (any file with a recognised source extension or package manifest
+outside ADIK-owned directories). If **no source files are found**:
+
+> **ADIK Empty-Project Prompt:**
+>
+> I've deployed the ADIK framework artifacts into this directory, but I don't detect any
+> project source code yet.
+>
+> **ADIK generates SDKs *from* existing source code** — it does not create application code
+> itself. To proceed, you can either:
+>
+> 1. **Point me at an existing project** — provide the path to a repository that already
+>    contains your API, service, or library source code and I will analyse it.
+> 2. **Add source code first** — create your application code (routes, models, controllers,
+>    etc.) in this directory, then invoke me again and I will generate the SDK from it.
+> 3. **Scaffold a starter project** — if you'd like me to create a minimal starter project
+>    structure (e.g., a basic Express/FastAPI/ASP.NET skeleton) so you have something to
+>    generate an SDK from, tell me and I'll set it up.
+>
+> *Which would you like?*
+>
+> *(Respond with **1**, **2**, **3**, or describe what you need.)*
+
+On receiving **1**: re-run the startup protocol against the provided path.  
+On receiving **2**: halt and wait for the user to add code, then re-invoke.  
+On receiving **3**: generate a minimal, idiomatic starter project in the target directory,
+write `adik.env.json` with `startupMode: "scaffolded"`, then proceed to the normal startup
+prompt below.  
+On receiving a free-form response: interpret it as guided requirements and proceed accordingly.
+
+> **Critical:** The orchestrator must **never** silently proceed to SDK generation when the
+> target directory contains no source code. Doing so would produce empty or broken SDK output
+> and confuse the user.
 
 ---
+
+### Startup Prompt (requires source code present)
+
+When source files **are** detected (or after scaffolding completes):
 
 **ADIK Startup Prompt:**
 
@@ -221,6 +262,44 @@ The detected type is recorded in `Registry.md` under `## Project Metadata` and g
 
 ---
 
+## Pipeline Execution Contract
+
+> **⚠️ CRITICAL — READ BEFORE EXECUTING ANY STEP**
+>
+> Every step in this pipeline produces **real files written to disk**. The agent executing
+> each step must **actually create the files** described in the step's output specification —
+> not just describe them, plan them, or list them in a report.
+>
+> **"Invoking a skill"** means: read the skill file, follow its generation rules, and
+> **write every output file to disk** using the filesystem tools available in your
+> environment (`create_file`, `write_file`, `fs.writeFile`, or equivalent).
+>
+> **Common failure mode:** The agent populates `Registry.md`, writes `adik.env.json`,
+> generates the validation report, and self-embeds context files — but stops before
+> writing actual SDK source code (`.ts`, `.py`, `.cs` files) to `sdk/`. This is
+> **incomplete**. The pipeline is only successful when SDK source code files exist on
+> disk and are importable/compilable.
+
+### Pipeline Completion Checklist
+
+After the full pipeline runs, the following **must** exist on disk:
+
+| Artifact | Location | Created by |
+|---|---|---|
+| Environment probe | `adik.env.json` | Step 0 |
+| Symbol registry | `Registry.md` (or partitions) | Step 1 |
+| Validation report | `sdk/VALIDATION_REPORT.md` | Step 2 |
+| **SDK source code** | `sdk/typescript/src/*.ts` | **Step 3 — Builder** |
+| **SDK source code** | `sdk/python/<pkg>/*.py` | **Step 3 — Builder** |
+| **SDK source code** | `sdk/csharp/*.cs` | **Step 3 — Builder** |
+| Build report | `sdk/BUILD_REPORT.md` | Step 3 |
+| Context files updated | `.github/copilot-instructions.md`, `CLAUDE.md`, `agents.md` | Step 4 |
+
+> **If `sdk/<language>/` directories are empty or missing after step 3, the pipeline has
+> failed.** The orchestrator must not proceed to step 4 and must report the failure.
+
+---
+
 ## Orchestration Workflow
 
 ```
@@ -243,19 +322,23 @@ ADIK.orchestrator.md
   │         output: sdk/VALIDATION_REPORT.md
   │         → FAIL aborts SDK generation
   │
-  ├─► [3] Builder Agent               → reads Registry, delegates to skills
+  ├─► [3] Builder Agent               → reads Registry, WRITES ACTUAL SDK SOURCE CODE
   │         (agents/builder.agent.md)
   │         │
-  │         ├─► SDK Builder Skill     → emits TS / Python / C# SDK packages (tier-1)
+  │         ├─► SDK Builder Skill     → WRITES .ts / .py / .cs files to sdk/<lang>/
   │         │     (skills/sdk-builder.skill.md)
+  │         │     MUST create: package manifests, client code, model files, type files
   │         │
-  │         ├─► SDK Builder Tier-2    → emits Go / Java / Kotlin packages (opt-in)
+  │         ├─► SDK Builder Tier-2    → WRITES Go / Java / Kotlin files (opt-in)
   │         │     (skills/sdk-builder-tier2.skill.md)
   │         │     only invoked when tier2Languages is configured in adik.config.json
   │         │
-  │         └─► SDK Consumer Skill    → emits boilerplate, classes, serializers
+  │         └─► SDK Consumer Skill    → WRITES example files, boilerplate, DI wiring
   │               (skills/sdk-consumer.skill.md)
   │               (uses inferred frameworkHints from adik.env.json)
+  │
+  │    ──► GATE: verify sdk/<language>/ directories contain source code files.
+  │         If empty → FAIL. Do not proceed.
   │
   ├─► [4] Self-Embedding              → inject ADIK context into project files
   │         python3 scripts/adik-embed.py --action upsert --target .
@@ -297,6 +380,16 @@ registry. For large codebases (≥ 500 symbols or ≥ 200 KB), it writes domain-
 `Registry.<domain>.md` files and a master `Registry.index.md`, then surfaces the vectorization
 advisory if vector mode is not active.
 
+If no source files are found for the configured include patterns, the run must stop after issuing
+an explicit warning. In this case, the orchestrator must not proceed to SDK generation and must
+ask the user to either:
+
+1. Point ADIK at the correct project/repository that contains source code, or
+2. Add source code first, then re-run analysis and generation.
+
+Deploying ADIK into an empty folder installs only ADIK artifacts. SDK code is generated only
+after successful analysis of a real codebase.
+
 The `partitionStrategy` option in `adik.config.json` controls how symbols are assigned to domains:
 - **`"auto"`** (default) — infer from the first namespace segment; falls back to `"file"` if all
   symbols land in one partition.
@@ -316,7 +409,10 @@ outputDir: ./sdk
 Validation must report `PASS` or `WARN` before proceeding. A `FAIL` result aborts SDK
 generation and instructs the developer to fix the registry or re-run the analyst.
 
-### Step 3 — SDK Generation
+### Step 3 — SDK Generation (writes actual source code)
+
+> **⚠️ This is the step that produces the actual SDK.** If this step completes but `sdk/`
+> directories are empty, the pipeline has failed.
 
 Invoke the **Builder Agent** once validation passes:
 
@@ -331,6 +427,56 @@ tier2Languages: [go, java]                   # opt-in; omit if not needed
 The builder reads `adik.env.json.frameworkHints` and passes them to `sdk-consumer.skill.md`.
 When `tier2Languages` is configured, it invokes `skills/sdk-builder-tier2.skill.md` for each
 tier-2 language after completing tier-1 generation.
+
+**What "invoke the SDK Builder Skill" means concretely:**
+
+For each configured language, the agent must:
+
+1. Read every symbol from `Registry.md` (classes, interfaces, enums, endpoints, errors).
+2. **Create real source code files** on disk — one file per model/class, a client file,
+   barrel exports, type definitions, error classes.
+3. **Create a package manifest** (`package.json`, `pyproject.toml`, `.csproj`).
+4. **Create a README** with a quick-start usage example.
+
+Example: for a registry with 3 endpoints, 5 models, and 2 enums in TypeScript mode, step 3
+must produce at minimum:
+
+```
+sdk/typescript/
+├── package.json                  ← real file with name, version, dependencies
+├── tsconfig.json                 ← real file with compiler options
+├── README.md                     ← real file with usage example
+└── src/
+    ├── index.ts                  ← barrel export (real code)
+    ├── client.ts                 ← HTTP client with 3 typed methods (real code)
+    ├── models/
+    │   ├── Model1.ts             ← actual TypeScript interface/class (real code)
+    │   ├── Model2.ts             ← ...
+    │   ├── Model3.ts
+    │   ├── Model4.ts
+    │   ├── Model5.ts
+    │   └── index.ts
+    ├── types/
+    │   ├── Enum1.ts              ← actual TypeScript enum (real code)
+    │   ├── Enum2.ts
+    │   └── index.ts
+    └── errors/
+        └── index.ts
+```
+
+**If none of these files exist after this step, the pipeline has not completed.**
+
+### Post-Step-3 Verification Gate
+
+After the Builder Agent finishes, the orchestrator **must** verify:
+
+```
+FOR EACH language IN sdkLanguages + tier2Languages:
+  CHECK: sdk/<language>/ directory exists
+  CHECK: sdk/<language>/ contains at least one source code file (.ts, .py, .cs, .go, .java, .kt)
+  CHECK: sdk/<language>/ contains a package manifest
+  IF any check fails → REPORT FAILURE and re-invoke the Builder Agent for that language
+```
 
 ### Step 4 — Self-Embedding
 
@@ -370,7 +516,7 @@ successful build.
 
 ## File Layout
 
-> See [`README.md`](README.md) for the full repository structure and [`docs/quickstart-guide.md`](docs/quickstart-guide.md) for a walkthrough.
+> See [`README.md`](README.md) for the full repository structure and [`docs/getting-started/quickstart-guide.md`](docs/getting-started/quickstart-guide.md) for a walkthrough.
 
 Key paths the orchestrator writes to:
 
@@ -388,7 +534,7 @@ Key paths the orchestrator writes to:
 
 The orchestrator reads `adik.config.json` from the repository root. If absent, all defaults apply.
 
-> **Full schema and field reference:** [`docs/configuration.md`](docs/configuration.md)
+> **Full schema and field reference:** [`docs/getting-started/configuration.md`](docs/getting-started/configuration.md)
 
 Key defaults: tier-1 languages `[typescript, python, csharp]`, output to `./sdk`, auto project-type detection, auto registry partitioning above 500 symbols.
 
@@ -404,7 +550,7 @@ python3 scripts/adik-eject.py --target . --confirm     # eject (keeps sdk/)
 python3 scripts/adik-eject.py --target . --confirm --remove-sdk  # eject all
 ```
 
-> **Details:** See `scripts/adik-eject.py --help` or [`docs/quickstart-guide.md`](docs/quickstart-guide.md#step-7--eject-if-needed).
+> **Details:** See `scripts/adik-eject.py --help` or [`docs/getting-started/quickstart-guide.md`](docs/getting-started/quickstart-guide.md#step-7--eject-if-needed).
 
 ---
 
@@ -422,4 +568,4 @@ python3 scripts/adik-eject.py --target . --confirm --remove-sdk  # eject all
 
 ---
 
-> **Related files:** All agent, skill, script, and registry files are listed in [`ADIK.md`](ADIK.md) and [`docs/configuration.md`](docs/configuration.md). For the full file tree, see [`README.md`](README.md#repository-structure).
+> **Related files:** All agent, skill, script, and registry files are listed in [`ADIK.md`](ADIK.md) and [`docs/getting-started/configuration.md`](docs/getting-started/configuration.md). For the full file tree, see [`README.md`](README.md#repository-structure).

@@ -112,6 +112,6 @@ These contracts apply to every ADIK-compliant implementation:
 | Document | Role | Audience |
 |---|---|---|
 | **[`ADIK.orchestrator.md`](ADIK.orchestrator.md)** | Operational orchestrator template — deployed inside every adik | AI agents, developers deploying ADIK |
-| **[`docs/standard.md`](docs/standard.md)** | Formal specification (RFC-style, conformance levels, MUST/SHOULD) | Implementors building ADIK-compatible tools |
+| **[`docs/specification/standard.md`](docs/specification/standard.md)** | Formal specification (RFC-style, conformance levels, MUST/SHOULD) | Implementors building ADIK-compatible tools |
 | **[`ADIKbuilder.md`](ADIKbuilder.md)** | Factory orchestrator — produces specialized adiks (source repo only) | ADIK framework maintainers |
 | **[`README.md`](README.md)** | Quick start, repository layout, getting started | Everyone |

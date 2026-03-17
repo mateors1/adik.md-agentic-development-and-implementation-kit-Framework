@@ -200,5 +200,5 @@ All features below are additive. The core pipeline (Analyst → Validator → Bu
 |---|---|
 | [README](../README.md) | Overview and quick start |
 | [Manifesto](manifesto.md) | Philosophy and principles |
-| [Build Your Own ADIK](examples/ADIKBuilderExample.md) | Step-by-step construction guide |
-| [Red-Team Audit v2](red-team-audit-v2.md) | Security audit and risk matrix |
+| [Build Your Own ADIK](../examples/ADIKBuilderExample.md) | Step-by-step construction guide |
+| [Red-Team Audit v2](../security/red-team-audit-v2.md) | Security audit and risk matrix |

@@ -7,6 +7,10 @@
 > is explicitly listed in `adik.config.json` under `tier2Languages`.
 > **Purpose:** Generates publish-ready Go modules and Java (or Kotlin) packages from the ADIK
 > Registry. Mirrors the contract of `skills/sdk-builder.skill.md` for Tier-1 languages.
+>
+> **⚠️ EXECUTION MANDATE:** When invoked, this skill must **write actual source code files**
+> (`.go`, `.java`, `.kt`) to disk — not descriptions or plans. Each file must contain
+> complete, compilable source code.
 
 ---
 

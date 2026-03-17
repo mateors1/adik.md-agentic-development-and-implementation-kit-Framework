@@ -78,7 +78,7 @@ The framework eats its own cooking.
 
 ## The Standard
 
-ADIK is designed to be a **publishable standard**, not just a tool. The contracts between orchestrator, agents, skills, and registry are documented precisely enough that anyone can implement a compatible ADIK framework from scratch — see [`docs/examples/ADIKBuilderExample.md`](examples/ADIKBuilderExample.md) for the complete step-by-step guide.
+ADIK is designed to be a **publishable standard**, not just a tool. The contracts between orchestrator, agents, skills, and registry are documented precisely enough that anyone can implement a compatible ADIK framework from scratch — see [`docs/examples/ADIKBuilderExample.md`](../examples/ADIKBuilderExample.md) for the complete step-by-step guide.
 
 Standardisation matters because it enables:
 
@@ -96,5 +96,5 @@ Standardisation matters because it enables:
 | [`ADIK.md`](../ADIK.md) | Standard definition — what ADIK is, its terminology, and contracts |
 | [`ADIK.orchestrator.md`](../ADIK.orchestrator.md) | Operational orchestrator — the brain inside every adik |
 | [`ADIKbuilder.md`](../ADIKbuilder.md) | Factory — produces specialized adiks |
-| [`docs/examples/ADIKBuilderExample.md`](examples/ADIKBuilderExample.md) | Step-by-step guide to building your own ADIK from scratch |
+| [`docs/examples/ADIKBuilderExample.md`](../examples/ADIKBuilderExample.md) | Step-by-step guide to building your own ADIK from scratch |
 | [`Registry.md`](../Registry.md) | Symbol registry format specification |

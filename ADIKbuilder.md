@@ -102,7 +102,7 @@ These files must reference `ADIKbuilder.md`, `ADIK.md`, and `ADIK.orchestrator.m
 - [ ] `.github/copilot-instructions.md` mentions `ADIK.md`, `ADIK.orchestrator.md`, and `ADIKbuilder.md` and their respective roles.
 - [ ] `CLAUDE.md` contains an up-to-date executive summary and the correct file layout.
 - [ ] `agents.md` lists all current agents, skills, and the MCP server accurately.
-- [ ] `docs/manifesto.md` reflects the current principles.
+- [ ] `docs/specification/manifesto.md` reflects the current principles.
 - [ ] `docs/examples/ADIKBuilderExample.md` is in sync with framework contract changes.
 
 ---
@@ -280,10 +280,21 @@ adik.md-agentic-development-and-implementation-kit/
 │       ├── adik-self-deploy.yml     ← CI/CD self-deployment workflow (source repo)
 │       └── adik-ci.yml              ← optional integration testing workflow (source repo)
 ├── docs/
-│   ├── manifesto.md                 ← ADIK philosophy and principles
-│   ├── red-team-audit-v2.md         ← Post-v2.0 red-team audit
-│   └── examples/
-│       └── ADIKBuilderExample.md    ← self-sufficient guide for building your own ADIK (not deployed)
+│   ├── index.md                     ← Documentation site home
+│   ├── getting-started/
+│   │   ├── quickstart-guide.md      ← 15-minute first-run walkthrough
+│   │   ├── pre-deployment.md        ← Bundle walkthrough before first run
+│   │   └── configuration.md         ← adik.config.json reference
+│   ├── specification/
+│   │   ├── standard.md              ← ADIK Standard Specification
+│   │   ├── architecture.md          ← System architecture with Mermaid diagrams
+│   │   └── manifesto.md             ← ADIK philosophy and principles
+│   ├── examples/
+│   │   └── ADIKBuilderExample.md    ← self-sufficient guide for building your own ADIK (not deployed)
+│   ├── security/
+│   │   └── red-team-audit-v2.md     ← Post-v2.0 security audit
+│   └── community/
+│       └── launch-posts.md          ← Social media launch content
 ├── agents/
 │   ├── builder.agent.md
 │   └── codebase-analyst.agent.md
@@ -328,7 +339,7 @@ adik.md-agentic-development-and-implementation-kit/
 | `ADIK.md` | Standard definition — what ADIK is, terminology, and contracts |
 | `ADIK.orchestrator.md` | Operational orchestrator — the brain inside every deployed adik |
 | `docs/examples/ADIKBuilderExample.md` | Step-by-step guide for building a custom ADIK implementation |
-| `docs/red-team-audit-v2.md` | Post-v2.0 red-team security and improvement audit |
+| `docs/security/red-team-audit-v2.md` | Post-v2.0 red-team security and improvement audit |
 | `Registry.md` | Symbol registry template (monolithic) |
 | `Registry.index.md` | Partitioned registry master index template |
 | `README.md` | Manifesto + dual-audience guide |
@@ -337,7 +348,7 @@ adik.md-agentic-development-and-implementation-kit/
 | `.github/copilot-instructions.md` | GitHub Copilot context for this source repository |
 | `.github/workflows/adik-self-deploy.yml` | CI/CD workflow for self-deploying the bundle as `<reponame>-ADIK` |
 | `.github/workflows/adik-ci.yml` | Optional integration testing workflow (registry validation + type-checking) |
-| `docs/manifesto.md` | ADIK philosophy and principles |
+| `docs/specification/manifesto.md` | ADIK philosophy and principles |
 | `agents/builder.agent.md` | SDK builder agent |
 | `agents/codebase-analyst.agent.md` | Codebase analysis + frameworkHints inference + dev-state check |
 | `skills/sdk-builder.skill.md` | Tier-1 SDK code-generation skill (TypeScript, Python, C#) |

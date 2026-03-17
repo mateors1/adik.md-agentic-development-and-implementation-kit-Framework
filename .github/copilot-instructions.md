@@ -25,9 +25,11 @@ It contains the factory orchestrator and the deployable adik bundle:
 **Source-only files** (never deployed): `ADIKbuilder.md`, root-level `ADIKBuilderExample.md` (redirect), `docs/`, `CLAUDE.md`, `agents.md`, `.github/`.
 
 **Canonical documentation structure:**
-- `docs/manifesto.md` — ADIK philosophy and principles
-- `docs/examples/ADIKBuilderExample.md` — step-by-step guide to building your own ADIK
-- `docs/red-team-audit-v2.md` — post-v2.0 red-team security audit
+- `docs/getting-started/` — quickstart guide, pre-deployment walkthrough, configuration reference
+- `docs/specification/` — ADIK standard, architecture, manifesto
+- `docs/examples/` — showcases (Payments API, Task Manager, Chat Service), ADIKBuilderExample, scaffold
+- `docs/security/` — red-team audit
+- `docs/community/` — launch posts
 
 ---
 

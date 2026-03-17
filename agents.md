@@ -182,14 +182,14 @@ registry:
 
 ```yaml
 docs:
-  - file: docs/manifesto.md
+  - file: docs/specification/manifesto.md
     role: ADIK philosophy and principles
 
   - file: docs/examples/ADIKBuilderExample.md
     role: Step-by-step guide for building a custom ADIK implementation from scratch
     audience: Developers implementing the ADIK pattern independently
 
-  - file: docs/red-team-audit-v2.md
+  - file: docs/security/red-team-audit-v2.md
     role: Post-v2.0 red-team security and improvement audit
     audience: Security reviewers, framework maintainers
 ```

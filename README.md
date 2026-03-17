@@ -8,7 +8,7 @@
 
 > **Terminology:** An **adik** (lowercase) is the deliverable — a self-sustaining agentic SDK that includes both the generated SDK packages *and* the agents that produced them, so it can maintain itself.
 
-> Read the full philosophy in the [Manifesto](docs/manifesto.md). New to ADIK? Start with the [Quickstart Guide](docs/quickstart-guide.md).
+> Read the full philosophy in the [Manifesto](docs/specification/manifesto.md). New to ADIK? Start with the [Quickstart Guide](docs/getting-started/quickstart-guide.md).
 
 ---
 
@@ -37,7 +37,7 @@ flowchart LR
 
 The adik is **self-sustaining** — it carries its own agents and skills, so on every commit the pipeline re-runs and the SDKs stay in sync with your code. Everything is optional beyond the core pipeline. Vector search, MCP server, tier-2 languages, and framework hints all degrade gracefully when not configured.
 
-> See [Architecture](docs/architecture.md) for the full system diagram.
+> See [Architecture](docs/specification/architecture.md) for the full system diagram.
 
 ---
 
@@ -118,11 +118,24 @@ This repository contains the ADIK **framework source** — both the specificatio
 │   └── adik-mcp-server.md             ← MCP server definition
 ├── docs/
 │   ├── index.md                       ← Documentation site home
-│   ├── architecture.md                ← System architecture with Mermaid diagrams
-│   ├── manifesto.md                   ← Philosophy and principles
-│   ├── red-team-audit-v2.md           ← Post-v2.0 security audit
-│   └── examples/
-│       └── ADIKBuilderExample.md      ← Build your own ADIK from scratch
+│   ├── getting-started/               ← Onboarding & configuration
+│   │   ├── quickstart-guide.md        ← 15-minute first-run walkthrough
+│   │   ├── pre-deployment.md          ← Bundle walkthrough before first run
+│   │   └── configuration.md           ← adik.config.json reference
+│   ├── specification/                 ← Formal standard & design
+│   │   ├── standard.md                ← ADIK Standard Specification
+│   │   ├── architecture.md            ← System architecture with Mermaid diagrams
+│   │   └── manifesto.md               ← Philosophy and principles
+│   ├── examples/                      ← Showcases & implementation guides
+│   │   ├── showcase-payments-api.md   ← NestJS REST API showcase
+│   │   ├── showcase-task-manager.md   ← FastAPI showcase
+│   │   ├── showcase-chat-service.md   ← TypeScript WebSocket showcase
+│   │   ├── ADIKBuilderExample.md      ← Build your own ADIK from scratch
+│   │   └── scaffold.md                ← Master bootstrap prompt
+│   ├── security/
+│   │   └── red-team-audit-v2.md       ← Post-v2.0 security audit
+│   └── community/
+│       └── launch-posts.md            ← Social media launch content
 ├── adik-lint.py                       ← ADIK.md specification linter
 ├── mkdocs.yml                         ← MkDocs Material site config
 ├── LICENSE                            ← CC BY 4.0 (spec) + Apache 2.0 (impl)
@@ -177,16 +190,18 @@ Source code is never touched. Only ADIK artifacts are removed.
 
 | Document | Description |
 |---|---|
-| **[ADIK Standard Specification](docs/standard.md)** | Formal spec — what makes a framework ADIK-compatible |
-| **[Architecture](docs/architecture.md)** | System diagram, delegation model, data flow |
-| **[Manifesto](docs/manifesto.md)** | Philosophy and core principles |
-| **[Pre-Deployment Walkthrough](docs/examples/pre-deployment.md)** | What the bundle looks like before running |
+| **[Quickstart Guide](docs/getting-started/quickstart-guide.md)** | 15-minute first-run walkthrough |
+| **[Pre-Deployment Walkthrough](docs/getting-started/pre-deployment.md)** | What the bundle looks like before running |
+| **[Configuration Reference](docs/getting-started/configuration.md)** | `adik.config.json` schema and defaults |
+| **[ADIK Standard Specification](docs/specification/standard.md)** | Formal spec — what makes a framework ADIK-compatible |
+| **[Architecture](docs/specification/architecture.md)** | System diagram, delegation model, data flow |
+| **[Manifesto](docs/specification/manifesto.md)** | Philosophy and core principles |
 | **[Showcase: Payments API](docs/examples/showcase-payments-api.md)** | Full example — NestJS REST API |
 | **[Showcase: Task Manager](docs/examples/showcase-task-manager.md)** | Full example — FastAPI with webhooks |
 | **[Showcase: Chat Service](docs/examples/showcase-chat-service.md)** | Full example — TypeScript WebSocket + REST |
-| **[Scaffold (Master Prompt)](docs/examples/scaffold.md)** | Single file that bootstraps ADIK into any repo |
 | **[Build Your Own ADIK](docs/examples/ADIKBuilderExample.md)** | Step-by-step construction guide |
-| **[Red-Team Audit v2](docs/red-team-audit-v2.md)** | Security audit and risk matrix |
+| **[Scaffold (Master Prompt)](docs/examples/scaffold.md)** | Single file that bootstraps ADIK into any repo |
+| **[Red-Team Audit v2](docs/security/red-team-audit-v2.md)** | Security audit and risk matrix |
 | **[Roadmap](ROADMAP.md)** | Planned features and version timeline |
 | **[Changelog](CHANGELOG.md)** | Version history |
 

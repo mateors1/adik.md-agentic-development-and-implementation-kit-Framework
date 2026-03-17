@@ -16,6 +16,12 @@ then coordinates the SDK Builder and SDK Consumer skills to produce complete, pu
 packages in every configured target language — including optional tier-2 languages (Go, Java,
 Kotlin).
 
+> **⚠️ EXECUTION MANDATE:** This agent **must write actual source code files to disk.**
+> "Invoking a skill" means reading the skill's generation rules and then creating every file
+> described in its output structure — real `.ts`, `.py`, `.cs` files with real code inside.
+> If the `sdk/` directories are empty after this agent finishes, the build has failed.
+> The agent must not stop after writing only the Registry, validation report, or build report.
+
 ---
 
 ## Responsibilities
@@ -110,6 +116,18 @@ Kotlin).
    ├─ tier1Languages, tier2Languages
    ├─ list of generated files per language
    └─ any warnings or skipped symbols
+
+7a. VERIFY OUTPUT (mandatory gate)
+    FOR EACH language IN sdkLanguages + tier2Languages:
+      ASSERT sdk/<language>/ directory exists
+      ASSERT sdk/<language>/ contains at least one source file with correct extension
+      ASSERT sdk/<language>/ contains a package manifest (package.json / pyproject.toml / .csproj / go.mod / pom.xml / build.gradle)
+      IF ANY assertion fails:
+        LOG "SDK generation incomplete for <language>" in BUILD_REPORT.md
+        RE-INVOKE the SDK Builder Skill for that language
+        IF still fails → mark exitStatus = "PARTIAL" or "FAIL"
+    This gate prevents the common failure mode where the agent writes metadata
+    files and reports but does not produce actual SDK source code.
 
 8. POST-GENERATION TYPE CHECK (recommended)
    FOR EACH language IN generated languages:

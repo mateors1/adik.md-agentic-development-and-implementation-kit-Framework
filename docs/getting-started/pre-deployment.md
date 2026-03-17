@@ -288,5 +288,5 @@ These blocks are managed exclusively by `scripts/adik-embed.py` — agents never
 ---
 
 **Next steps:**
-- [ADIKBuilderExample.md](ADIKBuilderExample.md) — Step-by-step guide to building your own ADIK
-- [scaffold.md](scaffold.md) — Scaffolding guide for new ADIK projects
+- [ADIKBuilderExample.md](../examples/ADIKBuilderExample.md) — Step-by-step guide to building your own ADIK
+- [scaffold.md](../examples/scaffold.md) — Scaffolding guide for new ADIK projects

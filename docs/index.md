@@ -53,7 +53,7 @@ Output appears in `sdk/typescript/`, `sdk/python/`, `sdk/csharp/`.
 | **Context Cleanliness** | Each agent and skill file does exactly one thing — context windows stay manageable |
 | **Graceful Degradation** | All features are additive — the core pipeline works with zero configuration |
 
-Read the full [Manifesto](manifesto.md) for the philosophy behind these principles.
+Read the full [Manifesto](specification/manifesto.md) for the philosophy behind these principles.
 
 ---
 
@@ -74,16 +74,18 @@ Read the full [Manifesto](manifesto.md) for the philosophy behind these principl
 
 | Document | Description |
 |---|---|
-| [ADIK Standard Specification](standard.md) | Formal spec — conformance levels, contracts, protocols |
-| [Architecture](architecture.md) | System diagram, agent delegation model, data flow |
-| [Manifesto](manifesto.md) | Philosophy and core principles |
-| [Pre-Deployment Walkthrough](examples/pre-deployment.md) | What the bundle looks like before running |
+| [ADIK Standard Specification](specification/standard.md) | Formal spec — conformance levels, contracts, protocols |
+| [Architecture](specification/architecture.md) | System diagram, agent delegation model, data flow |
+| [Manifesto](specification/manifesto.md) | Philosophy and core principles |
+| [Quickstart Guide](getting-started/quickstart-guide.md) | 15-minute first-run walkthrough |
+| [Pre-Deployment Walkthrough](getting-started/pre-deployment.md) | What the bundle looks like before running |
+| [Configuration Reference](getting-started/configuration.md) | `adik.config.json` schema and defaults |
 | [Showcase: Payments API](examples/showcase-payments-api.md) | Full example — NestJS REST API |
 | [Showcase: Task Manager](examples/showcase-task-manager.md) | Full example — FastAPI with webhooks |
 | [Showcase: Chat Service](examples/showcase-chat-service.md) | Full example — TypeScript WebSocket + REST |
 | [Scaffold (Master Prompt)](examples/scaffold.md) | Single file that bootstraps ADIK into any repo |
 | [Build Your Own ADIK](examples/ADIKBuilderExample.md) | Step-by-step construction guide |
-| [Red-Team Audit v2](red-team-audit-v2.md) | Security audit and risk matrix |
+| [Red-Team Audit v2](security/red-team-audit-v2.md) | Security audit and risk matrix |
 | [Changelog](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/CHANGELOG.md) | Version history |
 
 ---

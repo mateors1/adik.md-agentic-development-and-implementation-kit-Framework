@@ -13,7 +13,7 @@ The following files constitute the **ADIK Specification**:
 - `ADIK.orchestrator.md` — Operational Orchestrator
 - `ADIKbuilder.md` — Framework Orchestrator
 - `Registry.md` — Symbol Registry format specification
-- `docs/manifesto.md` — ADIK philosophy and principles
+- `docs/specification/manifesto.md` — ADIK philosophy and principles
 - `docs/examples/ADIKBuilderExample.md` — Step-by-step construction guide
 
 These files are licensed under the Creative Commons Attribution 4.0 International

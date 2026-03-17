@@ -13,6 +13,13 @@ The SDK Builder Skill generates publish-ready SDK packages for a given target la
 
 This skill understands the differences between an **API SDK** (HTTP client with typed request/response models), a **Service SDK** (event-driven or RPC client), and a **Library SDK** (direct re-export of types and a thin wrapper), and applies the appropriate generation template for each.
 
+> **⚠️ EXECUTION MANDATE:** When this skill is invoked, it must **create every file listed
+> in the Outputs section below** — real source code files written to disk using the
+> agent's file-creation tools. Each file must contain complete, compilable/importable
+> source code — not summaries, not placeholders, not comments describing what code
+> would go there. If the skill completes without writing actual `.ts` / `.py` / `.cs`
+> files, the invocation has failed and must be retried.
+
 ---
 
 ## Inputs

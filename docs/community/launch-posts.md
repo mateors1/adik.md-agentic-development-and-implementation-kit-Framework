@@ -74,7 +74,7 @@ I've been working on ADIK (Agentic Development and Implementation Kit) — an op
 
 **Links:**
 - GitHub: https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework
-- Standard specification: in `docs/standard.md`
+- Standard specification: in `docs/specification/standard.md`
 - Three full showcases: Payments API (NestJS), Task Manager (FastAPI), Chat Service (TypeScript)
 - Website: https://adik.md
 

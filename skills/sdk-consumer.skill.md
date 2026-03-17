@@ -13,6 +13,10 @@ The SDK Consumer Skill generates ready-to-use integration boilerplate that helps
 
 This skill ensures that the generated SDK is not just correct but immediately usable.
 
+> **⚠️ EXECUTION MANDATE:** When invoked, this skill must **write actual source code files**
+> to disk — real example scripts, real DI wiring code, real retry wrappers. Each file must
+> contain complete, runnable source code, not placeholders or summaries.
+
 ---
 
 ## Inputs

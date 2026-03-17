@@ -232,6 +232,9 @@ Source code is **never** touched. Only ADIK-owned files and the `<!-- ADIK:START
 | "Registry.md is empty after analysis" | Make sure your source files have exported/public types. Check `includePatterns` in config. |
 | "Validation FAIL" | Read `sdk/VALIDATION_REPORT.md` — it explains what's wrong. Usually a type reference to something not in the registry. |
 | "No SDKs generated" | Validation must pass first. Fix registry issues, then re-run the builder. |
+| "Registry populated but `sdk/` is empty" | The pipeline ran analysis but didn't execute SDK code generation. Re-prompt explicitly: *"Load `agents/builder.agent.md` and `skills/sdk-builder.skill.md`. Read every symbol from Registry.md. For each configured language, create the actual source code files — models, client, types, package manifest — in `sdk/<language>/`."* |
+| "ADIK created artifacts but no SDK code" | Same root cause — the agent treated "build the SDK" as "set up the framework." Use the explicit prompt above, or run: *"Read ADIK.orchestrator.md, execute step 3 (SDK Generation), and write every file described in skills/sdk-builder.skill.md to disk."* |
+| "I asked to create an adik in /route and only got artifacts" | If the folder had source code: use the explicit step-3 prompt above. If the folder was empty: ADIK needs source code to generate from — add your project code first, then re-run. |
 | "AI agent doesn't know about ADIK" | Run `python3 scripts/adik-embed.py --action upsert --target .` to re-embed context. |
 | "Want to change languages" | Edit `adik.config.json` and re-run the pipeline. |
 | "Project is too large / too many types" | ADIK auto-partitions registries above 500 symbols. If that's not enough, set `"registryMode": "partitioned"` in config. |

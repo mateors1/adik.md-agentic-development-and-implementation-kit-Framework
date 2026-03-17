@@ -84,6 +84,46 @@ EXCLUDED_FROM_SCRIPTS = [
     "adik-deploy.py",  # factory-side only; not part of the adik
 ]
 
+# ADIK-owned paths that are not considered target project source.
+ADIK_OWNED_DIRS = {
+    "agents",
+    "skills",
+    "scripts",
+    "mcp",
+    "sdk",
+    ".github",
+    "__pycache__",
+    ".git",
+    "node_modules",
+    "vectors",
+}
+
+ADIK_OWNED_FILES = set(BUNDLE_FILES) | {
+    "ADIKbuilder.md",
+    "agents.md",
+    "CLAUDE.md",
+    "adik.env.json",
+    "adik.audit.log",
+    "adik.config.json",
+}
+
+SOURCE_EXTENSIONS = {
+    ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
+    ".py", ".cs", ".go", ".java", ".kt", ".kts",
+}
+
+SOURCE_MANIFESTS = {
+    "package.json",
+    "pyproject.toml",
+    "requirements.txt",
+    "setup.py",
+    "go.mod",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "Cargo.toml",
+}
+
 
 # ---------------------------------------------------------------------------
 # Validation
@@ -130,6 +170,37 @@ def check_target_conflicts(target: Path) -> List[str]:
         if (target / d).is_dir():
             conflicts.append(f"{d}/")
     return conflicts
+
+
+def has_user_source_files(target: Path) -> bool:
+    """
+    Detect whether the target appears to contain user project source code.
+
+    This excludes ADIK-owned files and directories so we can warn when users
+    deploy into an empty folder and expect SDK code generation immediately.
+    """
+    if not target.exists() or not target.is_dir():
+        return False
+
+    for root, dirs, files in os.walk(str(target)):
+        root_path = Path(root)
+        rel_parts = root_path.relative_to(target).parts
+
+        if any(part in ADIK_OWNED_DIRS for part in rel_parts):
+            dirs[:] = []
+            continue
+
+        dirs[:] = [sub for sub in dirs if sub not in ADIK_OWNED_DIRS and not sub.startswith('.')]
+
+        for fname in files:
+            if fname in ADIK_OWNED_FILES:
+                continue
+
+            suffix = Path(fname).suffix.lower()
+            if suffix in SOURCE_EXTENSIONS or fname in SOURCE_MANIFESTS:
+                return True
+
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -328,6 +399,10 @@ def main():
         print(f"✓ adik bundle deployed to {target}")
         if not args.embed:
             print("  Tip: run with --embed to also set up context files (.github/copilot-instructions.md, CLAUDE.md, agents.md)")
+        if not has_user_source_files(target):
+            print("  ⚠  No user source files were detected in the target project.")
+            print("     ADIK deployment only installs framework artifacts.")
+            print("     SDK code is generated after running ADIK.orchestrator.md against an existing codebase.")
         print()
         print("Next steps:")
         print("  1. Open the target repository in your agentic environment")
