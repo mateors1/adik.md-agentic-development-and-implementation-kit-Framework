@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="d0850879-25ee-4441-b28a-224a43da6ddb" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.github/copilot-instructions.md" beforeDir="false" afterPath="$PROJECT_DIR$/.github/copilot-instructions.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.github/workflows/adik-self-deploy.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/adik-self-deploy.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.github/workflows/docs.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/docs.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ADIK.md" beforeDir="false" afterPath="$PROJECT_DIR$/ADIK.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ADIKBuilderExample.md" beforeDir="false" afterPath="$PROJECT_DIR$/ADIKBuilderExample.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ADIKbuilder.md" beforeDir="false" afterPath="$PROJECT_DIR$/ADIKbuilder.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CLAUDE.md" beforeDir="false" afterPath="$PROJECT_DIR$/CLAUDE.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Registry.index.md" beforeDir="false" afterPath="$PROJECT_DIR$/Registry.index.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Registry.md" beforeDir="false" afterPath="$PROJECT_DIR$/Registry.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/adik-lint.py" beforeDir="false" afterPath="$PROJECT_DIR$/adik-lint.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/agents.md" beforeDir="false" afterPath="$PROJECT_DIR$/agents.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/agents/builder.agent.md" beforeDir="false" afterPath="$PROJECT_DIR$/agents/builder.agent.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/agents/codebase-analyst.agent.md" beforeDir="false" afterPath="$PROJECT_DIR$/agents/codebase-analyst.agent.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/examples/ADIKBuilderExample.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/examples/ADIKBuilderExample.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/index.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/manifesto.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/manifesto.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/red-team-audit-v2.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/red-team-audit-v2.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mcp/adik-mcp-server.md" beforeDir="false" afterPath="$PROJECT_DIR$/mcp/adik-mcp-server.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mkdocs.yml" beforeDir="false" afterPath="$PROJECT_DIR$/mkdocs.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements-docs.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements-docs.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/adik-eject.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/adik-eject.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/adik-embed.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/adik-embed.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/skills/registry-validator.skill.md" beforeDir="false" afterPath="$PROJECT_DIR$/skills/registry-validator.skill.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/skills/sdk-builder-tier2.skill.md" beforeDir="false" afterPath="$PROJECT_DIR$/skills/sdk-builder-tier2.skill.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/skills/sdk-builder.skill.md" beforeDir="false" afterPath="$PROJECT_DIR$/skills/sdk-builder.skill.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/skills/sdk-consumer.skill.md" beforeDir="false" afterPath="$PROJECT_DIR$/skills/sdk-consumer.skill.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/skills/vectorize.skill.md" beforeDir="false" afterPath="$PROJECT_DIR$/skills/vectorize.skill.md" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 1
+}]]></component>
+  <component name="ProjectId" id="3B28TEAL4Nv8M64A7cBQ13QA1JC" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d0850879-25ee-4441-b28a-224a43da6ddb" name="Changes" comment="" />
+      <created>1773675810363</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1773675810363</updated>
+      <workItem from="1773675812493" duration="7000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
+  <component name="VcsManagerConfiguration">
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.OperationCanceledException" breakIfHandledByOtherCode="false" displayValue="System.OperationCanceledException" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.Tasks.TaskCanceledException" breakIfHandledByOtherCode="false" displayValue="System.Threading.Tasks.TaskCanceledException" />
+          <option name="timeStamp" value="2" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
+          <option name="timeStamp" value="3" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

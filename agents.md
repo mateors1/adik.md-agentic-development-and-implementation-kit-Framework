@@ -6,16 +6,17 @@
 
 ---
 
-## ADIK — Framework Orchestrators
+## ADIK — Factory, Standard, and Orchestrator
 
-This repository contains two orchestrators:
+This repository contains the factory, the standard definition, and the orchestrator template that ships in every adik:
 
 | File | Role |
 |---|---|
-| `ADIKbuilder.md` | **Framework Orchestrator** — governs development and release of ADIK itself (source repo only, never deployed) |
-| `ADIK.md` | **Implementation Orchestrator** — drives SDK generation in target repositories (deployed) |
+| `ADIKbuilder.md` | **Factory** — produces specialized adiks (source repo only, never deployed) |
+| `ADIK.md` | **Standard Definition** — defines what ADIK is, its terminology, and contracts (deployed) |
+| `ADIK.orchestrator.md` | **Operational Orchestrator** — the brain inside every adik, drives SDK generation and implementation in target repositories (deployed) |
 
-**Always load `ADIKbuilder.md` first** when working on the ADIK framework itself. Load `ADIK.md` to understand what is deployed to target projects.
+**Always load `ADIKbuilder.md` first** when working on the ADIK framework itself. Load `ADIK.md` for the standard definition and `ADIK.orchestrator.md` to understand what ships inside every adik.
 
 ---
 
@@ -25,7 +26,7 @@ This repository contains two orchestrators:
 agents:
   - file: agents/builder.agent.md
     role: SDK Builder
-    invoked_by: ADIK.md
+    invoked_by: ADIK.orchestrator.md
     delegates_to:
       - skills/registry-validator.skill.md  # mandatory pre-generation gate
       - skills/sdk-builder.skill.md         # tier-1 (TypeScript, Python, C#)
@@ -35,7 +36,7 @@ agents:
 
   - file: agents/codebase-analyst.agent.md
     role: Codebase Analysis, Environment Probe, Framework Hints Inference, Registry Partitioning
-    invoked_by: ADIK.md
+    invoked_by: ADIK.orchestrator.md
     writes_to:
       - Registry.md           # monolithic mode
       - Registry.index.md     # partitioned mode (auto-triggered by size threshold)
@@ -108,6 +109,12 @@ scripts:
       - ADIK framework files and directories
       - ADIK guard blocks from context files
       - sdk/ (optional, requires --remove-sdk)
+
+  - file: scripts/adik-deploy.py
+    role: Factory-side bundle assembly and deployment — assembles the adik and copies it to target repos
+    invoked_manually: true
+    source_repo_only: true  # never deployed as part of the adik
+    actions: [assemble, deploy]
 ```
 
 ---
@@ -191,8 +198,8 @@ docs:
 
 ## Self-Embedding Note
 
-`ADIK.md` and `ADIKbuilder.md` embed themselves into the agentic context of any project they
-operate in. When `ADIK.md` is deployed to a target project, `scripts/adik-embed.py` creates or
+`ADIK.orchestrator.md` and `ADIKbuilder.md` embed themselves into the agentic context of any project they
+operate in. When an adik is deployed to a target project, `scripts/adik-embed.py` creates or
 updates:
 
 - `.github/copilot-instructions.md` — ADIK project context for GitHub Copilot

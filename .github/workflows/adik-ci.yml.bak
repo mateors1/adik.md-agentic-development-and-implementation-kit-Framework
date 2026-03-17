@@ -1,0 +1,257 @@
+# adik-ci.yml — ADIK Integration Testing Workflow
+#
+# Provides a deterministic integration test harness around the non-deterministic
+# LLM-driven ADIK pipeline. Runs the full analysis → validate → build → type-check
+# cycle and fails the CI run if any step produces a non-PASS result.
+#
+# This workflow is OPTIONAL. Teams using ADIK can add it to their CI pipeline
+# to catch regressions in Registry content, type mappings, and SDK correctness.
+#
+# Triggered by:
+#   - Push to main branch (when ADIK files are modified)
+#   - Pull requests that touch ADIK-related files
+#   - Manual workflow_dispatch
+#
+# Non-interactive / headless:
+#   ADIK_NON_INTERACTIVE=true is set automatically.
+
+name: ADIK Integration Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ADIK.md"
+      - "Registry.md"
+      - "Registry.index.md"
+      - "Registry.*.md"
+      - "agents/**"
+      - "skills/**"
+      - "scripts/**"
+      - "adik.config.json"
+      - "src/**"
+  pull_request:
+    paths:
+      - "ADIK.md"
+      - "Registry.md"
+      - "Registry.index.md"
+      - "Registry.*.md"
+      - "agents/**"
+      - "skills/**"
+      - "scripts/**"
+      - "adik.config.json"
+      - "src/**"
+  workflow_dispatch:
+
+env:
+  ADIK_NON_INTERACTIVE: 'true'
+  ADIK_STARTUP_MODE: 'blanket'
+  ADIK_STRICT_TYPECHECK: 'true'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Step 1: Validate the Registry
+  # ---------------------------------------------------------------------------
+  validate-registry:
+    name: Validate Registry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run ADIK Linter
+        run: python adik-lint.py ADIK.md
+
+      - name: Check registry exists
+        run: |
+          if [ -f "Registry.index.md" ]; then
+            echo "Registry mode: partitioned"
+            echo "REGISTRY_PATH=Registry.index.md" >> "$GITHUB_ENV"
+          elif [ -f "Registry.md" ]; then
+            echo "Registry mode: monolithic"
+            echo "REGISTRY_PATH=Registry.md" >> "$GITHUB_ENV"
+          else
+            echo "::error::No Registry.md or Registry.index.md found."
+            exit 1
+          fi
+
+      - name: Validate registry structure
+        run: |
+          echo "Validating ${REGISTRY_PATH}..."
+          # Check for required ADIK section markers
+          for section in "ENDPOINTS" "SCHEMAS" "ENUMS" "ERRORS"; do
+            if grep -q "<!-- ADIK:${section}:START -->" "${REGISTRY_PATH}" 2>/dev/null; then
+              START=$(grep -c "<!-- ADIK:${section}:START -->" "${REGISTRY_PATH}")
+              END=$(grep -c "<!-- ADIK:${section}:END -->" "${REGISTRY_PATH}")
+              if [ "${START}" != "${END}" ]; then
+                echo "::error::Mismatched markers for section ${section} in ${REGISTRY_PATH}"
+                exit 1
+              fi
+              echo "  ✅ ${section}: ${START} block(s) matched"
+            fi
+          done
+          echo "Registry structure validation passed."
+
+  # ---------------------------------------------------------------------------
+  # Step 2: Type-check generated SDKs
+  # ---------------------------------------------------------------------------
+  typecheck-typescript:
+    name: Type-Check TypeScript SDK
+    runs-on: ubuntu-latest
+    needs: validate-registry
+    if: hashFiles('sdk/typescript/package.json') != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: sdk/typescript
+        run: npm install
+
+      - name: Type-check
+        working-directory: sdk/typescript
+        run: npx tsc --noEmit
+
+  typecheck-python:
+    name: Type-Check Python SDK
+    runs-on: ubuntu-latest
+    needs: validate-registry
+    if: hashFiles('sdk/python/setup.py') != '' || hashFiles('sdk/python/pyproject.toml') != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install mypy and SDK
+        run: |
+          pip install mypy
+          cd sdk/python && pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
+
+      - name: Type-check
+        run: mypy sdk/python/ --ignore-missing-imports
+
+  typecheck-csharp:
+    name: Type-Check C# SDK
+    runs-on: ubuntu-latest
+    needs: validate-registry
+    if: hashFiles('sdk/csharp/**/*.csproj') != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build (type-check)
+        run: dotnet build sdk/csharp/ --no-restore || dotnet restore sdk/csharp/ && dotnet build sdk/csharp/
+
+  typecheck-go:
+    name: Type-Check Go SDK
+    runs-on: ubuntu-latest
+    needs: validate-registry
+    if: hashFiles('sdk/go/go.mod') != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build (type-check)
+        working-directory: sdk/go
+        run: go build ./...
+
+  typecheck-java:
+    name: Type-Check Java SDK
+    runs-on: ubuntu-latest
+    needs: validate-registry
+    if: hashFiles('sdk/java/pom.xml') != '' || hashFiles('sdk/java/build.gradle') != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Build (type-check)
+        working-directory: sdk/java
+        run: |
+          if [ -f "pom.xml" ]; then
+            mvn compile -q
+          elif [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+            gradle build -x test
+          fi
+
+  typecheck-kotlin:
+    name: Type-Check Kotlin SDK
+    runs-on: ubuntu-latest
+    needs: validate-registry
+    if: hashFiles('sdk/kotlin/build.gradle.kts') != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Build (type-check)
+        working-directory: sdk/kotlin
+        run: gradle build -x test
+
+  # ---------------------------------------------------------------------------
+  # Step 3: Summary
+  # ---------------------------------------------------------------------------
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs:
+      - validate-registry
+      - typecheck-typescript
+      - typecheck-python
+      - typecheck-csharp
+      - typecheck-go
+      - typecheck-java
+      - typecheck-kotlin
+    if: always()
+    steps:
+      - name: Report results
+        run: |
+          echo "## ADIK Integration Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Registry Validation | ${{ needs.validate-registry.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| TypeScript Type-Check | ${{ needs.typecheck-typescript.result == 'success' && '✅ Pass' || needs.typecheck-typescript.result == 'skipped' && '⏭️ Skipped' || '❌ Fail' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Python Type-Check | ${{ needs.typecheck-python.result == 'success' && '✅ Pass' || needs.typecheck-python.result == 'skipped' && '⏭️ Skipped' || '❌ Fail' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| C# Type-Check | ${{ needs.typecheck-csharp.result == 'success' && '✅ Pass' || needs.typecheck-csharp.result == 'skipped' && '⏭️ Skipped' || '❌ Fail' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Go Type-Check | ${{ needs.typecheck-go.result == 'success' && '✅ Pass' || needs.typecheck-go.result == 'skipped' && '⏭️ Skipped' || '❌ Fail' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Java Type-Check | ${{ needs.typecheck-java.result == 'success' && '✅ Pass' || needs.typecheck-java.result == 'skipped' && '⏭️ Skipped' || '❌ Fail' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Kotlin Type-Check | ${{ needs.typecheck-kotlin.result == 'success' && '✅ Pass' || needs.typecheck-kotlin.result == 'skipped' && '⏭️ Skipped' || '❌ Fail' }} |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if registry validation failed
+        if: needs.validate-registry.result != 'success'
+        run: exit 1

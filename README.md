@@ -1,123 +1,57 @@
-# ADIK.md — Agentic Development and Implementation Kit
+# ADIK — Agentic Development and Implementation Kit
 
-**ADIK.md** is a fully agentic framework for automating the creation and maintenance of SDKs for any project — whether it is an API, a service, or a library.
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/mateors1)
+[![License: CC BY 4.0](https://img.shields.io/badge/Spec-CC%20BY%204.0-lightgrey)](https://creativecommons.org/licenses/by/4.0/)
+[![License: Apache 2.0](https://img.shields.io/badge/Code-Apache%202.0-blue)](http://www.apache.org/licenses/LICENSE-2.0)
 
----
+**ADIK** is a framework standard for producing **adiks** — self-sustaining agentic SDKs. ADIKbuilder generates a specialized bundle of cooperating AI agents that reads your codebase, builds a language-agnostic symbol registry, generates publish-ready SDK packages, produces framework-idiomatic integration boilerplate, and self-embeds into your AI tools — so your SDKs stay in sync with your code and developers can adopt them with zero friction, automatically.
 
-## Manifesto
+> **Terminology:** An **adik** (lowercase) is the deliverable — a self-sustaining agentic SDK that includes both the generated SDK packages *and* the agents that produced them, so it can maintain itself.
 
-Software teams spend enormous effort writing and maintaining SDKs, client libraries, and consumption boilerplate — work that is mechanical, error-prone, and chronically behind the actual service. Every time an endpoint changes, every generated type drifts. Every time a new developer joins, they spend days unwrapping how to call the API.
-
-**ADIK inverts this.** The source of truth is the *codebase*, not a wiki or a hand-maintained SDK. A team of specialised agents reads your code, understands its structure, and generates complete, publish-ready SDK packages in TypeScript, Python, and C#. When the codebase changes, the SDK changes. When a new developer joins, the boilerplate is already there.
-
-ADIK is built on four principles:
-
-1. **One source of truth.** Every type, schema, and endpoint is declared once in `Registry.md` and generated into all languages from that single definition.
-2. **Inference over configuration.** Framework hints, project type, vector capabilities — ADIK discovers these automatically. You should only need to configure what ADIK cannot know.
-3. **Context cleanliness.** Vectorization, framework-specific logic, and infrastructure concerns live in dedicated subagents and subskills. The orchestrator stays lean and readable in any context window.
-4. **Graceful degradation.** Every feature is additive. Vector mode, MCP server, framework-specific boilerplate — all optional. The core pipeline works with zero configuration.
+> Read the full philosophy in the [Manifesto](docs/manifesto.md). New to ADIK? Start with the [Quickstart Guide](docs/quickstart-guide.md).
 
 ---
 
-## Key Files
+## How It Works
 
-| File | Role | Deployed to target repos? |
-|---|---|---|
-| `ADIKbuilder.md` | Source-repo orchestrator — governs development and release of the ADIK framework | No |
-| `ADIK.md` | Implementation orchestrator — drives SDK generation in target repositories | Yes |
-| `docs/examples/ADIKBuilderExample.md` | Step-by-step guide to building your own ADIK implementation from scratch | No |
-| `docs/manifesto.md` | ADIK philosophy, principles, and the case for this standard | No |
-| `Registry.md` | DRY symbol registry template | Yes |
-| `LICENSE` | Dual license: CC BY 4.0 (Specification) + Apache 2.0 (Reference Implementation) | No |
-| `adik-lint.py` | ADIK specification linter — validates ADIK.md structural requirements | No |
-| `mkdocs.yml` | MkDocs configuration for the documentation site | No |
-| `requirements-docs.txt` | Python dependencies for building the documentation site | No |
-| `CLAUDE.md` | Claude session context for this source repository | No |
-| `agents.md` | Agent/skill registry for agentic sessions in this source repository | No |
-| `.github/copilot-instructions.md` | GitHub Copilot context for this source repository | No |
-
-`ADIKbuilder.md`, `docs/`, `CLAUDE.md`, `agents.md`, and `.github/` remain in this repository only. `ADIK.md` is the file that gets copied into every target codebase. When deployed, `ADIK.md` automatically creates equivalent `CLAUDE.md`, `agents.md`, and `.github/copilot-instructions.md` files in the target project.
-
----
-
-## What ADIK Does
-
-1. **Analyses your codebase** — a dedicated Codebase Analyst Agent scans your source files, detects endpoints, classes, schemas, and exported functions, and writes everything to a structured `Registry.md` file.
-2. **Infers your framework** — ADIK reads `architecture.md`, package manifests, and existing agent/skill files to automatically detect which frameworks you use (React, NestJS, FastAPI, ASP.NET, etc.) so generated boilerplate is idiomatic from day one.
-3. **Checks development state** — before each run, ADIK snapshots the pipeline configuration and detects stale artifacts from prior runs to prevent crosstailing.
-4. **Builds the SDK** — a Builder Agent reads the Registry and delegates to language-specific skills to generate complete, idiomatic SDK packages in TypeScript, Python, and C#.
-5. **Generates consumption boilerplate** — an SDK Consumer Skill produces ready-to-use examples, serialization helpers, adapter classes, and DI wiring — framework-specific when hints are available.
-6. **Stays in sync** — every time new functionality is merged, ADIK detects changed symbols and regenerates only what has changed.
-7. **Optionally vectorizes** — when a vector DB is available, a dedicated Vectorize Skill embeds the Registry and codebase for semantic search. The orchestrator and agents stay clean; the skill handles all embedding logic.
-8. **Exposes an MCP server** — an optional Model Context Protocol server lets developers consume the SDK, query the registry, and trigger regeneration from any agentic environment.
-
----
-
-## Repository Layout
-
+```mermaid
+flowchart LR
+    AB["ADIKbuilder<br/>(factory)"] -->|generates| ADIK["Specialized adik"]
+    ADIK --> SRC["Your Source Code"]
+    SRC --> CA["Codebase Analyst<br/>Agent"]
+    CA --> REG["Registry.md<br/>(single source of truth)"]
+    REG --> RV["Registry Validator"]
+    RV -->|PASS| BA["Builder Agent"]
+    BA --> SDK["sdk/typescript/<br/>sdk/python/<br/>sdk/csharp/<br/>sdk/go/ · java/ · kotlin/"]
+    BA --> CON["Examples · DI wiring<br/>Boilerplate · Retry logic"]
+    BA --> EMB["Self-embed into<br/>AI assistants"]
 ```
-├── ADIKbuilder.md                   ← Source-repo orchestrator (not deployed)
-├── ADIK.md                          ← Implementation orchestrator (deployed to target repos)
-├── Registry.md                      ← DRY symbol registry (single source of truth)
-├── LICENSE                          ← Dual license: CC BY 4.0 (spec) + Apache 2.0 (impl)
-├── adik-lint.py                     ← ADIK specification linter
-├── mkdocs.yml                       ← MkDocs documentation site configuration
-├── requirements-docs.txt            ← MkDocs dependencies
-├── CLAUDE.md                        ← Claude session context for this repository
-├── agents.md                        ← Agent/skill registry for agentic sessions
-├── .github/
-│   ├── copilot-instructions.md      ← GitHub Copilot context for this repository
-│   └── workflows/
-│       └── docs.yml                 ← GitHub Pages docs deployment workflow
-├── docs/
-│   ├── index.md                     ← Documentation site home page
-│   ├── manifesto.md                 ← ADIK philosophy and principles
-│   └── examples/
-│       └── ADIKBuilderExample.md    ← Guide for building your own ADIK from scratch
-├── agents/
-│   ├── builder.agent.md             ← SDK builder agent
-│   └── codebase-analyst.agent.md   ← Codebase analysis + env probe + frameworkHints inference
-├── skills/
-│   ├── sdk-builder.skill.md         ← SDK code-generation skill (TS / Python / C#)
-│   ├── sdk-consumer.skill.md        ← Framework-idiomatic consumption boilerplate skill
-│   └── vectorize.skill.md           ← Vector embedding + upsert subskill (loaded on demand)
-└── mcp/
-    └── adik-mcp-server.md           ← MCP server definition
-```
+
+1. **ADIKbuilder** (this repo) is the factory — it produces specialized adiks tailored to your project.
+2. **Codebase Analyst Agent** scans your source and populates `Registry.md` with every public symbol.
+3. **Registry Validator** runs a three-level gate (structural, type, semantic) before any generation.
+4. **Builder Agent** coordinates SDK generation across all configured languages.
+5. **SDK Consumer Skill** produces framework-idiomatic examples, DI wiring, retry wrappers, and integration boilerplate — so developers can adopt the SDK immediately, not just receive it.
+6. **Self-Embedding** injects ADIK context into your AI tools (Copilot, Claude, Cursor) so any assistant working in the repo understands the SDK and can help implement it.
+7. **MCP Server** *(optional)* exposes the full pipeline as tools — your coding agent can regenerate SDKs, query the registry, or scaffold new integrations on demand.
+
+The adik is **self-sustaining** — it carries its own agents and skills, so on every commit the pipeline re-runs and the SDKs stay in sync with your code. Everything is optional beyond the core pipeline. Vector search, MCP server, tier-2 languages, and framework hints all degrade gracefully when not configured.
+
+> See [Architecture](docs/architecture.md) for the full system diagram.
 
 ---
 
 ## Quick Start
 
-### 1. Add ADIK to Your Source Repository
-
-Copy the ADIK bundle into the root of the repository whose SDK you want to generate:
+### 1. Deploy the adik into your project
 
 ```bash
-cp -r adik.md-bundle/* /path/to/your/source-repo/
+python3 scripts/adik-deploy.py --target /path/to/your/project/
 ```
 
-The bundle includes `ADIK.md` (implementation orchestrator), `Registry.md`, agents, skills, and the MCP server. `ADIKbuilder.md` is **not** included in the bundle.
+The deploy script assembles and copies the adik bundle: `ADIK.md`, `ADIK.orchestrator.md`, `Registry.md`, `Registry.index.md`, `agents/`, `skills/`, `scripts/` (excluding `adik-deploy.py` itself), `mcp/`.
 
-### 2. (Optional) Create `adik.config.json`
-
-```jsonc
-{
-  "projectType": "auto",
-  "sdkLanguages": ["typescript", "python", "csharp"],
-  "outputDir": "./sdk",
-  "syncOnCommit": true,
-  "vectors": {
-    "bundled": false,
-    "autoDetect": true,
-    "preferVectors": true
-  }
-}
-```
-
-If omitted, ADIK uses sensible defaults and auto-detects the project type and vector capabilities.
-
-### 3. Run the Codebase Analyst Agent
+### 2. Run the Codebase Analyst
 
 ```
 @agent codebase-analyst
@@ -126,9 +60,7 @@ target: ./src
 output: Registry.md
 ```
 
-This populates `Registry.md` with all discovered symbols. If a vector DB is detected in the environment, the registry and codebase are also vectorized automatically.
-
-### 4. Run the Builder Agent
+### 3. Run the Builder
 
 ```
 @agent builder
@@ -139,150 +71,126 @@ languages: [typescript, python, csharp]
 
 Generated SDKs appear in `sdk/typescript/`, `sdk/python/`, and `sdk/csharp/`.
 
-### 5. (Optional) Start the MCP Server
-
-```bash
-npx adik-mcp-server --registry ./Registry.md
-```
-
-Add the server to your MCP client config so any connected agent can query the registry and trigger SDK rebuilds.
-
----
-
-## Agentic Artifacts
-
-| File | Kind | Role |
-|---|---|---|
-| `ADIKbuilder.md` | Framework Orchestrator | Governs ADIK development and releases (source repo only) |
-| `docs/examples/ADIKBuilderExample.md` | Scaffolding Guide | Step-by-step guide for building your own ADIK (source repo only) |
-| `docs/manifesto.md` | Philosophy | ADIK principles and the case for this standard (source repo only) |
-| `ADIK.md` | Implementation Orchestrator | Drives the entire SDK generation pipeline in target repos |
-| `Registry.md` | Artifact | DRY single source of truth for all symbols |
-| `CLAUDE.md` | Context File | Claude session context (source repo) / created in target repo by ADIK.md |
-| `agents.md` | Context File | Agent/skill registry (source repo) / created in target repo by ADIK.md |
-| `.github/copilot-instructions.md` | Context File | Copilot context (source repo) / created in target repo by ADIK.md |
-| `agents/builder.agent.md` | Agent | Generates SDK packages |
-| `agents/codebase-analyst.agent.md` | Agent | Analyses source, infers frameworkHints, checks dev state |
-| `skills/sdk-builder.skill.md` | Skill | Emits TS / Python / C# SDK code |
-| `skills/sdk-consumer.skill.md` | Skill | Emits framework-idiomatic consumption boilerplate |
-| `skills/vectorize.skill.md` | Subskill | Handles all vector embedding and upsert (loaded on demand) |
-| `mcp/adik-mcp-server.md` | MCP Server | Exposes ADIK capabilities to external agents |
+> **Optional:** Create `adik.config.json` for tier-2 languages, custom output paths, or vector settings. If omitted, ADIK uses sensible defaults.
 
 ---
 
 ## Supported Languages
 
-| Language | Package Manager | Formats |
-|---|---|---|
-| TypeScript | npm / pnpm / yarn | ESM + CJS + `.d.ts` declarations |
-| Python | pip / poetry / uv | Wheel + sdist |
-| C# | NuGet | `.nupkg` |
+| Tier | Language | Package Manager | Output |
+|---|---|---|---|
+| **1** | TypeScript | npm / pnpm / yarn | ESM + CJS + `.d.ts` |
+| **1** | Python | pip / poetry / uv | Wheel + sdist |
+| **1** | C# | NuGet | `.nupkg` |
+| **2** *(opt-in)* | Go | go modules | Go module |
+| **2** *(opt-in)* | Java | Maven / Gradle | JAR |
+| **2** *(opt-in)* | Kotlin | Gradle | JAR (coroutines) |
+
+Tier-2 languages require `tier2Languages` in `adik.config.json`.
 
 ---
 
-## DRYness via Registry.md
+## Repository Structure
 
-A core design principle of ADIK is that **every symbol, type, and schema is defined once** in `Registry.md` and then generated into all target languages from that single definition. This prevents drift between SDK versions and makes it easy to audit the public API surface at a glance.
+This repository contains the ADIK **framework source** — both the specification and the reference implementation.
 
-The Registry uses annotated Markdown sections with `ADIK:<SECTION>:START` / `ADIK:<SECTION>:END` markers so agents can parse it reliably while keeping it human-readable.
-
----
-
-## Context Cleanliness
-
-ADIK is designed so each file loads in a manageable context window:
-
-- **Vectorization** is isolated in `skills/vectorize.skill.md` — only loaded when vector mode is active. The orchestrator and agents never contain embedding or chunking logic.
-- **Framework-specific boilerplate** is handled in `skills/sdk-consumer.skill.md` — the orchestrator only passes inferred hints.
-- **Development state** is persisted in `adik.env.json` — each run reads the snapshot rather than reconstructing context from scratch.
-
----
-
-## Vector and RAG Support
-
-ADIK can vectorize `Registry.md` and the target codebase when the deployment environment already uses a vector database or RAG pipeline. All vector-store interactions are handled by `skills/vectorize.skill.md`; the orchestrator and agents stay clean.
-
-### How It Works
-
-1. **Auto-detection** — on first run, ADIK probes for a vector DB (Chroma, Pinecone, Weaviate, Qdrant, pgvector, etc.) or an embeddings-capable provider.
-2. **Delegation** — if found, the Codebase Analyst Agent invokes `skills/vectorize.skill.md` after populating `Registry.md`.
-3. **Preference** — `vectors.preferVectors: true` (the default) makes agents use semantic search over document parsing when available.
-4. **Bundled vectors** — bundles can ship with pre-computed embeddings in `vectors/` (NDJSON format, model-specific). Set `vectors.bundled: true` in `adik.config.json`.
-5. **Graceful degradation** — no vector DB? Document mode works without any loss of functionality.
-
----
-
-## MCP Integration
-
-The ADIK MCP server exposes the following tools to connected agents:
-
-| Tool | Description |
-|---|---|
-| `adik_get_registry` | Query the symbol registry |
-| `adik_build_sdk` | Trigger SDK generation |
-| `adik_analyse_codebase` | Refresh the registry from source |
-| `adik_scaffold_boilerplate` | Generate consumption boilerplate |
-| `adik_get_symbol` | Look up a specific symbol |
-| `adik_get_build_report` | Retrieve the latest build report |
-| `adik_vector_search` | Semantic symbol search (available when vector mode is active) |
-
-See `mcp/adik-mcp-server.md` for the full tool schemas and configuration.
-
----
-
-## Build Your Own ADIK
-
-Want to implement the ADIK pattern from scratch, without using this repository? See **[`docs/examples/ADIKBuilderExample.md`](docs/examples/ADIKBuilderExample.md)** for a complete, self-contained, step-by-step construction guide covering:
-
-- Building your own framework orchestrator (`MyADIKbuilder.md`)
-- Building the implementation orchestrator (`ADIK.md`) with the correct structure
-- Implementing the symbol registry, agents, skills, and MCP server
-- Applying the vectorize-as-subskill pattern
-- Applying the frameworkHints inference pattern
-- Applying the dev-state / crosstailing prevention pattern
-- A verification checklist before your first release
-
----
-
-## Licensing
-
-ADIK uses a **dual-license model** to maximise adoption while protecting the integrity of the standard:
-
-| Component | License |
-|---|---|
-| **Specification** — `ADIK.md`, `ADIKbuilder.md`, `Registry.md`, `docs/` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
-| **Reference Implementation** — `agents/`, `skills/`, `mcp/`, `adik-lint.py` | [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
-
-The CC BY 4.0 license allows you to freely share, adapt, and build upon the specification for any purpose as long as you give appropriate credit. The Apache 2.0 license allows you to freely use, modify, and distribute the reference implementation, including in commercial products.
-
-See [`LICENSE`](LICENSE) for full terms.
-
----
-
-## ADIK Linter
-
-The repository ships `adik-lint.py` — a lightweight Python script that validates the structural requirements of any ADIK implementation orchestrator:
-
-```bash
-python adik-lint.py [FILE]          # defaults to ADIK.md in the current directory
+```
+├── ADIK.md                            ← Standard definition (deployed as part of every adik)
+├── ADIK.orchestrator.md               ← Operational orchestrator (deployed as part of every adik)
+├── ADIKbuilder.md                     ← Framework orchestrator (source repo only — never deployed)
+├── Registry.md                        ← Symbol registry template (deployed)
+├── Registry.index.md                  ← Partitioned registry master index (deployed)
+├── CHANGELOG.md                       ← Version history
+├── agents/
+│   ├── builder.agent.md               ← SDK Builder Agent
+│   └── codebase-analyst.agent.md      ← Codebase Analyst Agent
+├── skills/
+│   ├── sdk-builder.skill.md           ← Tier-1 SDK generation (TS / Python / C#)
+│   ├── sdk-builder-tier2.skill.md     ← Tier-2 SDK generation (Go / Java / Kotlin — opt-in)
+│   ├── sdk-consumer.skill.md          ← Framework-idiomatic consumption boilerplate
+│   ├── registry-validator.skill.md    ← Mandatory pre-generation validation gate
+│   └── vectorize.skill.md             ← Vector embedding subskill (loaded on demand)
+├── scripts/
+│   ├── adik-deploy.py                 ← Factory-side bundle assembly and deployment (source repo only)
+│   ├── adik-embed.py                  ← Deterministic self-embedding into context files
+│   └── adik-eject.py                  ← Clean uninstall / eject protocol
+├── mcp/
+│   └── adik-mcp-server.md             ← MCP server definition
+├── docs/
+│   ├── index.md                       ← Documentation site home
+│   ├── architecture.md                ← System architecture with Mermaid diagrams
+│   ├── manifesto.md                   ← Philosophy and principles
+│   ├── red-team-audit-v2.md           ← Post-v2.0 security audit
+│   └── examples/
+│       └── ADIKBuilderExample.md      ← Build your own ADIK from scratch
+├── adik-lint.py                       ← ADIK.md specification linter
+├── mkdocs.yml                         ← MkDocs Material site config
+├── LICENSE                            ← CC BY 4.0 (spec) + Apache 2.0 (impl)
+└── .github/
+    ├── copilot-instructions.md        ← GitHub Copilot context
+    └── workflows/
+        ├── adik-self-deploy.yml       ← CI/CD bundle deployment
+        ├── adik-ci.yml                ← Optional integration testing (registry + type-check)
+        └── docs.yml                   ← GitHub Pages docs deployment
 ```
 
-The linter checks for:
+### What Gets Deployed (the adik) vs. What Stays Here
 
-- **Frontmatter** — `> **Version:**`, `> **Role:**`, `> **Scope:**` blockquotes within the first 20 lines
-- **Executive Summary** — a `## Executive Summary` section
-- **Reach of ADIK table** — a Markdown table within the `## Reach of ADIK` section
-- **Registry markers** — if any `ADIK:<SECTION>:START` markers are present, every START must have a matching END
-
-Exit code `0` means the file passes. Exit code `1` means one or more checks failed, with details printed to stdout.
+| Deployed as part of the adik | Source repo only |
+|---|---|
+| `ADIK.md`, `ADIK.orchestrator.md`, `Registry.md`, `Registry.index.md` | `ADIKbuilder.md`, `CHANGELOG.md` |
+| `agents/`, `skills/`, `scripts/` *(excluding `adik-deploy.py`)*, `mcp/` | `scripts/adik-deploy.py`, `docs/`, `adik-lint.py`, `mkdocs.yml` |
+| *(context files created by `adik-embed.py`)* | `CLAUDE.md`, `agents.md`, `.github/` |
 
 ---
 
-## Documentation Site
+## Key Concepts
 
-The ADIK documentation is automatically published to GitHub Pages from the `docs/` folder using [MkDocs Material](https://squidfunk.github.io/mkdocs-material/). The site is rebuilt on every push to `main` that touches `docs/`, `mkdocs.yml`, or `requirements-docs.txt`.
+### Two Orchestrators
 
-To build the docs locally:
+| File | Role | Audience |
+|---|---|---|
+| `ADIKbuilder.md` | **Factory** — produces specialized adiks | Framework maintainers |
+| `ADIK.md` | **Standard Definition** — defines what ADIK is, its terminology, and contracts | Everyone |
+| `ADIK.orchestrator.md` | **Operational Orchestrator** — the brain inside every adik, drives SDK generation in target repos | SDK consumers |
+
+### DRY Registry
+
+Every symbol is declared once in `Registry.md` and generated into all languages from that single definition. For large codebases (≥ 500 symbols), the registry auto-partitions into domain-scoped files (`Registry.<domain>.md`) indexed by `Registry.index.md`.
+
+### Self-Embedding
+
+When deployed, `scripts/adik-embed.py` injects ADIK context into `.github/copilot-instructions.md`, `CLAUDE.md`, and `agents.md` using `<!-- ADIK:START -->` / `<!-- ADIK:END -->` guard markers — idempotent and safe to run repeatedly.
+
+### Ejecting ADIK
+
+```bash
+python3 scripts/adik-eject.py --target . --dry-run    # preview what will be removed
+python3 scripts/adik-eject.py --target . --confirm     # execute removal
+```
+
+Source code is never touched. Only ADIK artifacts are removed.
+
+---
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| **[ADIK Standard Specification](docs/standard.md)** | Formal spec — what makes a framework ADIK-compatible |
+| **[Architecture](docs/architecture.md)** | System diagram, delegation model, data flow |
+| **[Manifesto](docs/manifesto.md)** | Philosophy and core principles |
+| **[Pre-Deployment Walkthrough](docs/examples/pre-deployment.md)** | What the bundle looks like before running |
+| **[Showcase: Payments API](docs/examples/showcase-payments-api.md)** | Full example — NestJS REST API |
+| **[Showcase: Task Manager](docs/examples/showcase-task-manager.md)** | Full example — FastAPI with webhooks |
+| **[Showcase: Chat Service](docs/examples/showcase-chat-service.md)** | Full example — TypeScript WebSocket + REST |
+| **[Scaffold (Master Prompt)](docs/examples/scaffold.md)** | Single file that bootstraps ADIK into any repo |
+| **[Build Your Own ADIK](docs/examples/ADIKBuilderExample.md)** | Step-by-step construction guide |
+| **[Red-Team Audit v2](docs/red-team-audit-v2.md)** | Security audit and risk matrix |
+| **[Roadmap](ROADMAP.md)** | Planned features and version timeline |
+| **[Changelog](CHANGELOG.md)** | Version history |
+
+### Building the docs locally
 
 ```bash
 pip install -r requirements-docs.txt
@@ -291,6 +199,37 @@ mkdocs serve
 
 ---
 
+## ADIK Linter
+
+```bash
+python adik-lint.py [FILE]     # defaults to ADIK.md
+```
+
+Validates frontmatter, required sections, and registry marker matching. Exit code `0` = pass.
+
+---
+
+## Licensing
+
+| Component | License |
+|---|---|
+| **Specification** — `ADIK.md`, `ADIK.orchestrator.md`, `ADIKbuilder.md`, `Registry.md`, `docs/` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| **Reference Implementation** — `agents/`, `skills/`, `scripts/`, `mcp/`, `adik-lint.py` | [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
+
+See [`LICENSE`](LICENSE) for full terms.
+
+---
+
+## Sponsor
+
+If ADIK saves you time or you believe in the future of agentic SDKs, consider [sponsoring the project](https://github.com/sponsors/mateors1). Sponsorships fund continued development, documentation, and community support.
+
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor_on_GitHub-%E2%9D%A4-pink?logo=github&style=for-the-badge)](https://github.com/sponsors/mateors1)
+
+---
+
 ## Contributing
 
-ADIK is itself an agentic project. Improvements to agent definitions, skill templates, or the registry format are welcome as pull requests. Please keep agent and skill files self-contained — each file should be independently readable and actionable by an LLM agent without needing to load the entire repository.
+Improvements to agent definitions, skill templates, or the registry format are welcome as pull requests. Please keep agent and skill files self-contained — each file should be independently readable by an LLM agent without loading the entire repository.
+
+See [`ADIKbuilder.md`](ADIKbuilder.md) for the framework evolution workflow and versioning rules.

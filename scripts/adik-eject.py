@@ -40,10 +40,12 @@ from typing import List, Tuple
 # Files that are always candidates for removal (ADIK framework files)
 ADIK_FRAMEWORK_FILES = [
     "ADIK.md",
+    "ADIK.orchestrator.md",
     "Registry.md",
     "Registry.index.md",
     "adik.env.json",
     "adik.config.json",
+    "adik.audit.log",
     # ADIK-owned helper scripts in the scripts/ directory
     "scripts/adik-embed.py",
     "scripts/adik-eject.py",

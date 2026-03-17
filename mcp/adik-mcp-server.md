@@ -210,7 +210,7 @@ Returns the most recent `sdk/BUILD_REPORT.md`.
 
 ### `adik_vector_search`
 
-Performs a semantic similarity search over the vectorized Registry and codebase. Only available when vector mode is active (see `ADIK.md` — Vector and RAG Support).
+Performs a semantic similarity search over the vectorized Registry and codebase. Only available when vector mode is active (see `ADIK.orchestrator.md` — Vector and RAG Support).
 
 **Input schema:**
 
@@ -354,7 +354,7 @@ npx adik-mcp-server --transport http --port 3100 --registry ./Registry.md
 
 | File | Role |
 |---|---|
-| `ADIK.md` | Root orchestrator; defines vector detection and configuration |
+| `ADIK.orchestrator.md` | Root orchestrator; defines vector detection and configuration |
 | `Registry.md` | Primary data source for the MCP server |
 | `adik.env.json` | Detected environment capabilities (governs `adik_vector_search` availability) |
 | `agents/builder.agent.md` | Agent triggered by `adik_build_sdk` tool |

@@ -6,19 +6,20 @@ This is the **ADIK (Agentic Development and Implementation Kit)** source reposit
 
 ## What This Repository Is
 
-This repository defines and governs the **ADIK framework standard** — a fully agentic system for automating the creation and maintenance of SDKs for any project (API, service, or library).
+This repository defines and governs the **ADIK framework standard** — a fully agentic system that produces **adiks** (self-sustaining agentic SDKs) for any project (API, service, or library).
 
-It contains two orchestrators and a deployable bundle:
+It contains the factory orchestrator and the deployable adik bundle:
 
 | File | Role | Deployed? |
 |---|---|---|
-| `ADIKbuilder.md` | **Source-repo orchestrator** — governs the development, validation, and release of the ADIK framework | No |
-| `ADIK.md` | **Implementation orchestrator** — copied into every target repository to drive SDK generation | Yes |
+| `ADIKbuilder.md` | **Factory orchestrator** — produces specialized adiks from this source repository | No |
+| `ADIK.md` | **Standard definition** — defines what ADIK is, its terminology, and contracts | Yes |
+| `ADIK.orchestrator.md` | **Operational orchestrator** — the brain inside every adik, drives SDK generation and implementation | Yes |
 | `Registry.md` | Symbol registry template (monolithic) | Yes |
 | `Registry.index.md` | Partitioned registry master index template | Yes |
 | `agents/` | Codebase Analyst and Builder agents | Yes |
 | `skills/` | SDK Builder (tier-1 & tier-2), SDK Consumer, Registry Validator, and Vectorize skills | Yes |
-| `scripts/` | `adik-embed.py` (deterministic self-embedding) and `adik-eject.py` (clean uninstall) | Yes |
+| `scripts/` | `adik-embed.py` (deterministic self-embedding), `adik-eject.py` (clean uninstall), and `adik-deploy.py` (factory-side bundle deployment — source repo only, not deployed) | Yes *(except `adik-deploy.py`)* |
 | `mcp/` | MCP server definition | Yes |
 
 **Source-only files** (never deployed): `ADIKbuilder.md`, root-level `ADIKBuilderExample.md` (redirect), `docs/`, `CLAUDE.md`, `agents.md`, `.github/`.
@@ -44,9 +45,9 @@ It contains two orchestrators and a deployable bundle:
 
 ## Key Contracts
 
-- `ADIK.md` and `Registry.md`/`Registry.index.md` are the **only** files deployed to target repositories (along with `agents/`, `skills/`, `scripts/`, `mcp/`).
-- `ADIKbuilder.md` is **never** deployed.
-- When `ADIK.md` changes in a backward-incompatible way, bump the major version in both `ADIK.md` and `ADIKbuilder.md`.
+- `ADIK.md`, `ADIK.orchestrator.md`, and `Registry.md`/`Registry.index.md` are deployed as part of every adik (along with `agents/`, `skills/`, `scripts/`, `mcp/`).
+- `ADIKbuilder.md` is **never** deployed — it is the factory, not part of the adik.
+- When `ADIK.md` or `ADIK.orchestrator.md` changes in a backward-incompatible way, bump the major version in both files and `ADIKbuilder.md`.
 - The Registry format uses `<!-- ADIK:<SECTION>:START -->` / `<!-- ADIK:<SECTION>:END -->` markers. Agents parse only content between these markers.
 - Context files (`.github/copilot-instructions.md`, `CLAUDE.md`, `agents.md`) use `<!-- ADIK:START -->` / `<!-- ADIK:END -->` guard markers managed by `scripts/adik-embed.py`.
 - Tier-2 SDK generation (Go, Java, Kotlin) is handled exclusively by `skills/sdk-builder-tier2.skill.md` and is opt-in via `tier2Languages` in `adik.config.json`.
@@ -61,7 +62,7 @@ ADIK is designed to **embed itself** into the agentic context of every project i
 - **`CLAUDE.md`** (repo root) — makes Claude-based sessions aware of ADIK context.
 - **`agents.md`** (repo root) — registers ADIK agents and skills for agentic sessions.
 
-When `ADIK.md` is deployed to a target repository, `scripts/adik-embed.py` creates or updates
+When an adik is deployed to a target repository, `scripts/adik-embed.py` creates or updates
 `.github/copilot-instructions.md`, `CLAUDE.md`, and `agents.md` using `<!-- ADIK:START -->`/
 `<!-- ADIK:END -->` guard markers — idempotent, no duplication across runs.
 
@@ -70,7 +71,7 @@ When `ADIK.md` is deployed to a target repository, `scripts/adik-embed.py` creat
 ## When Making Changes
 
 - Always check `ADIKbuilder.md` for the current version and evolution workflow before modifying agents, skills, or orchestrator files.
-- When adding a new agent or skill, reference it in `ADIK.md`'s orchestration workflow and Related Files table, and update `README.md` and `agents.md`.
+- When adding a new agent or skill, reference it in `ADIK.orchestrator.md`'s orchestration workflow and Related Files table, and update `README.md` and `agents.md`.
 - When changing the Registry schema, update `Registry.md`, `Registry.index.md`, all agents and skills that read/write it, and bump the minor version.
 - Keep `docs/examples/ADIKBuilderExample.md` in sync with any changes to the ADIK framework contracts.
 - Tier-2 language additions go in `skills/sdk-builder-tier2.skill.md` only. Never add tier-2 logic to `skills/sdk-builder.skill.md`.

@@ -2,7 +2,7 @@
 
 > **Role:** Codebase Analysis Subagent
 > **Type:** Analysis Agent
-> **Invoked by:** `ADIK.md`
+> **Invoked by:** `ADIK.orchestrator.md`
 > **Writes to:** `Registry.md` (monolithic) or `Registry.index.md` + `Registry.<domain>.md`
 > (partitioned), `adik.env.json`
 
@@ -19,7 +19,7 @@ This agent does not generate any SDK code. Its responsibilities are accurate, co
 ## Responsibilities
 
 1. **Probe the environment** — detect whether a vector DB or RAG pipeline is available; write results to `adik.env.json`.
-2. **Detect project type** — classify the repository as `api`, `service`, or `library` using the heuristics defined in `ADIK.md`.
+2. **Detect project type** — classify the repository as `api`, `service`, or `library` using the heuristics defined in `ADIK.orchestrator.md`.
 3. **Infer framework hints** — scan the source repo for `architecture.md`, existing `agents/*.md`, `skills/*.md`, package manifests, and framework config files to infer `frameworkHints` for the SDK Consumer Skill.
 4. **Gather development state** — record all active agents, skills, and configured tools in `adik.env.json` to prevent crosstailing across pipeline runs.
 5. **Discover public symbols** — scan all included source files for exported/public functions, classes, interfaces, enumerations, schemas, and endpoint definitions.
@@ -221,13 +221,62 @@ IF *.java files found AND (pom.xml OR build.gradle) present → "java"
 
 When the total discovered symbol count ≥ `partitionThresholdSymbols` (default: 500) **or** the
 combined Registry file size ≥ `partitionThresholdBytes` (default: 200 KB), the agent MUST switch
-to partitioned mode:
+to partitioned mode.
+
+### Partition Strategy
+
+The `partitionStrategy` option in `adik.config.json` controls how symbols are assigned to domain
+partitions. Three strategies are available:
+
+| Strategy | Description | Best For |
+|---|---|---|
+| `"auto"` (default) | Infer domains from the first segment of the symbol's namespace hierarchy | Projects with well-structured namespace hierarchies |
+| `"manual"` | Use explicit `partitionMappings` in `adik.config.json` to assign namespaces to partition names | Polyglot or flat-namespace projects requiring precise control |
+| `"file"` | One partition per top-level source directory (relative to `includePatterns` root) | Monorepo layouts or projects with directory-based domain boundaries |
+
+```jsonc
+// adik.config.json — partition strategy examples
+{
+  "partitionStrategy": "auto",          // default; infer from namespaces
+
+  // — OR —
+  "partitionStrategy": "manual",
+  "partitionMappings": {
+    "payments":   ["payments.*", "billing.*", "invoices.*"],
+    "users":      ["users.*", "auth.*", "identity.*"],
+    "shared":     ["common.*", "utils.*"]
+  },
+
+  // — OR —
+  "partitionStrategy": "file",          // one partition per top-level src dir
+}
+```
+
+When `partitionStrategy` is `"auto"` and all symbols fall into a single partition (common in
+flat-namespace Python projects with a single `src/` root), the agent falls back to `"file"`
+strategy automatically and logs an advisory. Teams can suppress this by setting
+`partitionStrategy: "manual"` with explicit mappings.
+
+### Domain Assignment Rules
 
 ```
 1. DETERMINE domain assignment for each symbol:
-   - Group by the first segment of the symbol's namespace
-   - Symbols used by multiple domains → assign to "shared" domain
-   - Example: "payments.transfers.Transfer" → domain "payments"
+
+   IF partitionStrategy = "auto":
+     - Group by the first segment of the symbol's namespace
+     - Symbols used by multiple domains → assign to "shared" domain
+     - Example: "payments.transfers.Transfer" → domain "payments"
+     - FALLBACK: if all symbols resolve to one domain, switch to "file" strategy
+
+   IF partitionStrategy = "manual":
+     - Match each symbol's fully qualified name against partitionMappings glob patterns
+     - Unmatched symbols → assign to "shared" domain
+     - Example: "billing.Invoice" matches "billing.*" → domain "payments"
+
+   IF partitionStrategy = "file":
+     - Use the top-level directory of the symbol's source file (relative to includePatterns root)
+     - Example: src/payments/transfer.ts → domain "payments"
+     - Files at the root level → assign to "shared" domain
 
 2. WRITE one Registry.<domain>.md file per domain
    - Each file uses the same ADIK marker format as Registry.md
@@ -236,6 +285,7 @@ to partitioned mode:
 3. WRITE Registry.index.md
    - Update the Partition Table with: domain, filename, symbol count, timestamp
    - Set registryMode = "partitioned" in index metadata
+   - Record the partitionStrategy used in index metadata
 
 4. CHECK vectorization advisory:
    IF totalSymbols >= config.partitionThresholdSymbols
@@ -369,7 +419,7 @@ output: adik.env.json
 
 | File | Role |
 |---|---|
-| `ADIK.md` | Parent orchestrator |
+| `ADIK.orchestrator.md` | Parent orchestrator |
 | `Registry.md` | Output: symbol registry (monolithic) |
 | `Registry.index.md` | Output: master index for partitioned registry |
 | `Registry.<domain>.md` | Output: domain-scoped registry partitions |

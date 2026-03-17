@@ -1,104 +1,98 @@
 # ADIK — Agentic Development and Implementation Kit
 
-**ADIK.md** is a fully agentic framework for automating the creation and maintenance of SDKs for any project — whether it is an API, a service, or a library.
+**ADIK** is a framework standard for fully automated, AI-driven SDK generation. A team of cooperating agents reads your codebase, builds a language-agnostic symbol registry, and generates publish-ready SDK packages in TypeScript, Python, C#, and optionally Go, Java, and Kotlin.
+
+> This is the documentation site for the ADIK framework. For the source repository, see [GitHub](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework).
 
 ---
 
-## What ADIK Does
+## The Pipeline
 
-ADIK inverts the traditional SDK workflow. Instead of hand-maintaining client libraries, a team of specialised agents reads your codebase, builds a language-agnostic symbol registry, and generates publish-ready SDK packages in TypeScript, Python, and C#. When your code changes, the SDK changes automatically.
-
-### Core Pipeline
+```mermaid
+flowchart LR
+    SRC["Source Code"] --> CA["Codebase Analyst"]
+    CA --> REG["Registry.md"]
+    REG --> RV["Validator"]
+    RV --> BA["Builder"]
+    BA --> SDK["SDK Packages"]
+```
 
 1. **Codebase Analyst Agent** scans your source and populates `Registry.md` with every public symbol.
-2. **Builder Agent** reads the registry and generates complete, idiomatic SDK packages.
-3. **SDK Consumer Skill** produces ready-to-use examples and DI wiring — framework-specific when hints are available.
-4. **Vectorize Skill** optionally embeds the registry for semantic search when a vector DB is present.
+2. **Registry Validator Skill** runs a three-level gate (structural → type → semantic) before generation.
+3. **Builder Agent** coordinates SDK generation, invoking tier-1 and tier-2 skills per language.
+4. **SDK Consumer Skill** produces framework-idiomatic examples, DI wiring, and boilerplate.
+5. **Vectorize Skill** optionally embeds the registry for semantic search when a vector DB is present.
+
+All features beyond the core pipeline — vector search, MCP server, tier-2 languages, framework hints — are additive and degrade gracefully when not configured.
 
 ---
 
 ## Quick Start
 
-### 1. Add ADIK to Your Repository
-
-Copy the ADIK bundle into the root of the repository whose SDK you want to generate:
-
 ```bash
-cp -r adik.md-bundle/* /path/to/your/source-repo/
+# 1. Copy the ADIK bundle into your project
+cp -r adik-bundle/* /path/to/your/project/
+
+# 2. Analyse your codebase
+@agent codebase-analyst task: analyse-and-register target: ./src
+
+# 3. Build the SDK
+@agent builder task: build-sdk registry: Registry.md languages: [typescript, python, csharp]
 ```
 
-### 2. Run the Codebase Analyst Agent
-
-```
-@agent codebase-analyst
-task: analyse-and-register
-target: ./src
-output: Registry.md
-```
-
-### 3. Run the Builder Agent
-
-```
-@agent builder
-task: build-sdk
-registry: Registry.md
-languages: [typescript, python, csharp]
-```
-
-Generated SDKs appear in `sdk/typescript/`, `sdk/python/`, and `sdk/csharp/`.
+Output appears in `sdk/typescript/`, `sdk/python/`, `sdk/csharp/`.
 
 ---
 
-## Four Core Principles
+## Core Principles
 
 | Principle | Summary |
 |---|---|
 | **One Source of Truth** | Every symbol is declared once in `Registry.md` and generated into all target languages |
 | **Inference Over Configuration** | ADIK detects frameworks, project type, and vector capabilities automatically |
-| **Context Cleanliness** | Each agent and skill file does exactly one thing, keeping every context window manageable |
-| **Graceful Degradation** | All features are additive — ADIK works with zero configuration |
+| **Context Cleanliness** | Each agent and skill file does exactly one thing — context windows stay manageable |
+| **Graceful Degradation** | All features are additive — the core pipeline works with zero configuration |
+
+Read the full [Manifesto](manifesto.md) for the philosophy behind these principles.
 
 ---
 
 ## Supported Languages
 
-| Language | Package Manager | Output Formats |
-|---|---|---|
-| TypeScript | npm / pnpm / yarn | ESM + CJS + `.d.ts` |
-| Python | pip / poetry / uv | Wheel + sdist |
-| C# | NuGet | `.nupkg` |
-
----
-
-## Key Files
-
-| File | Role | Deployed? |
-|---|---|---|
-| `ADIK.md` | Implementation orchestrator — drives SDK generation in target repositories | Yes |
-| `ADIKbuilder.md` | Framework orchestrator — governs ADIK's own development | No |
-| `Registry.md` | DRY symbol registry template | Yes |
-| `agents/builder.agent.md` | SDK builder agent | Yes |
-| `agents/codebase-analyst.agent.md` | Codebase analysis + frameworkHints inference | Yes |
-| `skills/sdk-builder.skill.md` | SDK code-generation skill (TS / Python / C#) | Yes |
-| `skills/sdk-consumer.skill.md` | Framework-idiomatic consumption boilerplate | Yes |
-| `skills/vectorize.skill.md` | Vector embedding subskill (loaded on demand) | Yes |
-| `mcp/adik-mcp-server.md` | MCP server definition | Yes |
-
----
-
-## Licensing
-
-ADIK uses a dual-license model:
-
-- **Specification** (`ADIK.md`, `ADIKbuilder.md`, `Registry.md`, docs) — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
-- **Reference Implementation** (agents, skills, MCP server, `adik-lint.py`) — [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
-
-See [`LICENSE`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/LICENSE) for full terms.
+| Tier | Language | Package Manager | Output |
+|---|---|---|---|
+| **1** | TypeScript | npm / pnpm / yarn | ESM + CJS + `.d.ts` |
+| **1** | Python | pip / poetry / uv | Wheel + sdist |
+| **1** | C# | NuGet | `.nupkg` |
+| **2** *(opt-in)* | Go | go modules | Go module |
+| **2** *(opt-in)* | Java | Maven / Gradle | JAR |
+| **2** *(opt-in)* | Kotlin | Gradle | JAR (coroutines) |
 
 ---
 
 ## Learn More
 
-- [Manifesto](manifesto.md) — The philosophy and principles behind ADIK
-- [Build Your Own ADIK](examples/ADIKBuilderExample.md) — Step-by-step guide to implementing the ADIK pattern from scratch
-- [GitHub Repository](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework)
+| Document | Description |
+|---|---|
+| [ADIK Standard Specification](standard.md) | Formal spec — conformance levels, contracts, protocols |
+| [Architecture](architecture.md) | System diagram, agent delegation model, data flow |
+| [Manifesto](manifesto.md) | Philosophy and core principles |
+| [Pre-Deployment Walkthrough](examples/pre-deployment.md) | What the bundle looks like before running |
+| [Showcase: Payments API](examples/showcase-payments-api.md) | Full example — NestJS REST API |
+| [Showcase: Task Manager](examples/showcase-task-manager.md) | Full example — FastAPI with webhooks |
+| [Showcase: Chat Service](examples/showcase-chat-service.md) | Full example — TypeScript WebSocket + REST |
+| [Scaffold (Master Prompt)](examples/scaffold.md) | Single file that bootstraps ADIK into any repo |
+| [Build Your Own ADIK](examples/ADIKBuilderExample.md) | Step-by-step construction guide |
+| [Red-Team Audit v2](red-team-audit-v2.md) | Security audit and risk matrix |
+| [Changelog](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/CHANGELOG.md) | Version history |
+
+---
+
+## Licensing
+
+| Component | License |
+|---|---|
+| **Specification** — `ADIK.md`, `ADIK.orchestrator.md`, `ADIKbuilder.md`, `Registry.md`, `docs/` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| **Reference Implementation** — `agents/`, `skills/`, `scripts/`, `mcp/` | [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
+
+See [`LICENSE`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/LICENSE) for full terms.

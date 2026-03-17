@@ -10,7 +10,7 @@
 
 ## Purpose
 
-The Vectorize Skill handles all embedding and vector-store interactions for the ADIK framework. It is intentionally isolated from the analysis and build pipelines so that `ADIK.md`, `ADIKbuilder.md`, and the core agents remain lean and free of vector-store specifics.
+The Vectorize Skill handles all embedding and vector-store interactions for the ADIK framework. It is intentionally isolated from the analysis and build pipelines so that `ADIK.orchestrator.md`, `ADIKbuilder.md`, and the core agents remain lean and free of vector-store specifics.
 
 By keeping vectorization in a dedicated subskill, teams that do not use a vector DB can safely ignore this file without affecting any other part of the framework.
 
@@ -174,4 +174,4 @@ since: <last-vectorised-timestamp>
 | `Registry.md` | Source of symbol entries and target for metadata updates |
 | `adik.env.json` | Vector store connection details and vectorMode flag |
 | `adik.config.json` | `vectors.chunkStrategy`, `vectors.embeddingModel`, `includePatterns` |
-| `ADIK.md` | Root orchestrator; defines vector detection policy |
+| `ADIK.orchestrator.md` | Root orchestrator; defines vector detection policy |

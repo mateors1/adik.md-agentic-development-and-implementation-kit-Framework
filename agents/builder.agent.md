@@ -2,7 +2,7 @@
 
 > **Role:** SDK Builder
 > **Type:** Orchestrator Agent
-> **Invoked by:** `ADIK.md`
+> **Invoked by:** `ADIK.orchestrator.md`
 > **Delegates to:** `skills/registry-validator.skill.md`, `skills/sdk-builder.skill.md`,
 > `skills/sdk-builder-tier2.skill.md` (opt-in), `skills/sdk-consumer.skill.md`
 
@@ -63,6 +63,7 @@ Kotlin).
 | Java SDK | `sdk/java/` | Java package (opt-in; requires `tier2Languages: [java]`) |
 | Kotlin SDK | `sdk/kotlin/` | Kotlin package (opt-in; requires `tier2Languages: [kotlin]`) |
 | Build report | `sdk/BUILD_REPORT.md` | Summary of all generated artifacts |
+| Audit log entry | `adik.audit.log` | Append-only NDJSON audit trail (one line per build) |
 
 ---
 
@@ -110,8 +111,42 @@ Kotlin).
    ├─ list of generated files per language
    └─ any warnings or skipped symbols
 
-8. RUN self-embedding script
-   python3 scripts/adik-embed.py --action upsert --target .
+8. POST-GENERATION TYPE CHECK (recommended)
+   FOR EACH language IN generated languages:
+     IF language = typescript → RUN tsc --noEmit on sdk/typescript/
+     IF language = python     → RUN mypy sdk/python/ (if mypy available)
+     IF language = csharp     → RUN dotnet build sdk/csharp/ (if dotnet available)
+     IF language = go         → RUN go build ./... in sdk/go/ (if go available)
+     IF language = java       → RUN mvn compile or gradle build in sdk/java/
+     IF language = kotlin     → RUN gradle build in sdk/kotlin/
+   REPORT results in BUILD_REPORT.md under "## Post-Generation Type Check"
+   NOTE: This step is ADVISORY — failures are logged but do not block the build.
+         Teams are strongly encouraged to treat type-check failures as errors
+         in CI/CD pipelines (set ADIK_STRICT_TYPECHECK=true to make them blocking).
+
+9. WRITE AUDIT LOG ENTRY
+   APPEND one NDJSON line to adik.audit.log:
+   {
+     "timestamp": "<ISO-8601>",
+     "event": "build",
+     "adikVersion": "1.0.0",
+     "commitSha": "<HEAD commit SHA>",
+     "registryHash": "<SHA-256 of Registry.md or Registry.index.md>",
+     "registryMode": "monolithic" | "partitioned",
+     "sdkLanguages": ["typescript", "python", "csharp"],
+     "tier2Languages": ["go", "java"],
+     "symbolCount": <integer>,
+     "validationStatus": "PASS" | "WARN",
+     "typeCheckStatus": { "<language>": "PASS" | "FAIL" | "SKIPPED" },
+     "generatedFiles": <integer>,
+     "exitStatus": "SUCCESS" | "PARTIAL" | "FAIL",
+     "warnings": ["<warning text>", ...]
+   }
+   NOTE: adik.audit.log is append-only NDJSON. Each line is a self-contained
+         JSON object. See the Audit Log section below for full schema details.
+
+10. RUN self-embedding script
+    python3 scripts/adik-embed.py --action upsert --target .
 ```
 
 ---
@@ -128,6 +163,65 @@ Kotlin).
 | `tier2Languages` contains unknown language | Log warning; skip that language |
 | Output directory already exists | Merge strategy: overwrite generated files, preserve manually created files |
 | `scripts/adik-embed.py` not found | Log warning; skip self-embedding; note in BUILD_REPORT.md |
+| Post-generation type-check fails | Log results to BUILD_REPORT.md; advisory by default. If `ADIK_STRICT_TYPECHECK=true`, treat as build failure |
+| Type-check tool not available | Log warning; skip that language's type-check; note in BUILD_REPORT.md |
+| Audit log write fails | Log warning to BUILD_REPORT.md; do not abort the build |
+
+---
+
+## Audit Log (`adik.audit.log`)
+
+The Builder Agent maintains an append-only NDJSON (newline-delimited JSON) audit log at the
+repository root. Each line records a single build event with full traceability metadata.
+
+### Purpose
+
+- **Compliance** — provides a structured, machine-readable record of every AI-generated SDK build
+  for regulated industries (FinTech, Healthcare, Defence).
+- **Debugging** — enables teams to trace exactly which registry state, commit, and configuration
+  produced a given SDK version.
+- **Drift detection** — allows comparison of consecutive builds to identify unexpected changes in
+  symbol count, validation status, or generated output.
+
+### Schema
+
+Each line in `adik.audit.log` is a self-contained JSON object:
+
+```jsonc
+{
+  "timestamp": "2026-03-16T18:30:00.000Z",    // ISO-8601 UTC
+  "event": "build",                            // "build" | "sync" | "validate-only"
+  "adikVersion": "1.0.0",                      // ADIK framework version
+  "commitSha": "abc1234def5678...",            // HEAD commit at build time
+  "registryHash": "sha256:e3b0c44...",         // SHA-256 of registry file(s)
+  "registryMode": "monolithic",                // "monolithic" | "partitioned"
+  "partitionStrategy": "auto",                 // "auto" | "manual" | "file" (if partitioned)
+  "sdkLanguages": ["typescript", "python", "csharp"],
+  "tier2Languages": ["go"],                    // empty array if no tier-2
+  "symbolCount": 342,                          // total symbols in registry
+  "validationStatus": "PASS",                  // "PASS" | "WARN" | "FAIL"
+  "typeCheckStatus": {                         // per-language type-check results
+    "typescript": "PASS",
+    "python": "SKIPPED",
+    "csharp": "PASS"
+  },
+  "generatedFiles": 47,                        // total files written
+  "exitStatus": "SUCCESS",                     // "SUCCESS" | "PARTIAL" | "FAIL"
+  "warnings": []                               // array of warning strings (may be empty)
+}
+```
+
+### Rules
+
+1. **Append-only** — never truncate or rewrite previous entries.
+2. **One line per build** — each JSON object occupies exactly one line (no pretty-printing).
+3. **Write after all other steps** — the audit entry is the last thing written before self-embedding.
+4. **Non-blocking** — if the log cannot be written (permissions, disk full), log a warning to
+   `BUILD_REPORT.md` and continue.
+5. **Optional signing** — teams may sign each entry by appending a `"signature"` field using a key
+   stored in repository secrets. The signing mechanism is outside ADIK's scope.
+6. **Eject-safe** — `adik-eject.py` includes `adik.audit.log` in the eject scope. Teams that want
+   to preserve the audit trail should copy it before ejecting.
 
 ---
 
@@ -188,7 +282,7 @@ languages: [typescript, python, csharp]
 
 | File | Role |
 |---|---|
-| `ADIK.md` | Parent orchestrator; defines vector detection and configuration |
+| `ADIK.orchestrator.md` | Parent orchestrator; defines vector detection and configuration |
 | `Registry.md` | Symbol registry (monolithic) |
 | `Registry.index.md` | Symbol registry master index (partitioned) |
 | `adik.env.json` | Detected environment capabilities (governs vector mode) |

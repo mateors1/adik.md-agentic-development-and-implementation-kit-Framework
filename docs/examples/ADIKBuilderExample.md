@@ -33,7 +33,8 @@ Start with an empty repository (or a new directory inside your existing project)
 ```
 my-adik-framework/
 ├── MyADIKbuilder.md        ← your framework orchestrator (created in Step 2)
-├── ADIK.md                 ← your implementation orchestrator (created in Step 3)
+├── ADIK.md                 ← your standard definition (created in Step 3a)
+├── ADIK.orchestrator.md    ← your implementation orchestrator (created in Step 3b)
 ├── Registry.md             ← symbol registry template (created in Step 4)
 ├── README.md               ← documentation (created in Step 9)
 ├── agents/
@@ -41,7 +42,7 @@ my-adik-framework/
 └── mcp/
 ```
 
-The key principle: **two orchestrators, one deployable**. `MyADIKbuilder.md` stays in this source repo forever; `ADIK.md` gets copied into every target codebase.
+The key principle: **factory + standard + specialized adik**. `MyADIKbuilder.md` is the factory — it stays in this source repo. `ADIK.md` is the standard definition. It produces adiks (self-sustaining agentic SDK bundles) that get deployed into every target codebase, with `ADIK.orchestrator.md` driving the operational pipeline.
 
 ---
 
@@ -67,6 +68,7 @@ ADIK framework files in this repository.
 The following files are copied into target repositories:
 
   ADIK.md
+  ADIK.orchestrator.md
   Registry.md
   agents/codebase-analyst.agent.md
   agents/builder.agent.md
@@ -79,19 +81,23 @@ MyADIKbuilder.md itself is NEVER included.
 
 ## Framework Evolution Rules
 
-- Adding a new agent/skill: create the file, reference it from ADIK.md, bump patch version.
+- Adding a new agent/skill: create the file, reference it from ADIK.orchestrator.md, bump patch version.
 - Changing the Registry schema: update Registry.md and all agents/skills that read/write it, bump minor version.
-- Breaking change to ADIK.md: bump major version, notify consumers.
+- Breaking change to ADIK.md or ADIK.orchestrator.md: bump major version, notify consumers.
 - Releasing a new version: after tagging, prompt the user whether to create a separate GitHub repository within the same organisation for internal distribution (see Releasing and Distribution below).
 
 ## Releasing and Distribution
 
 When releasing a new bundle version:
 
-1. Increment the version in this file and in `ADIK.md`.
+1. Increment the version in this file and in `ADIK.md` / `ADIK.orchestrator.md`.
 2. Tag the release (`vX.Y.Z`).
 3. Update `README.md` with release notes.
-4. **Prompt the user:** *"Would you like to create a separate GitHub repository within the same organisation to distribute this bundle internally?"*
+4. Run the factory deploy script to assemble and push the bundle:
+   ```bash
+   python3 scripts/adik-deploy.py --target /path/to/target-repo/
+   ```
+5. **Prompt the user:** *"Would you like to create a separate GitHub repository within the same organisation to distribute this bundle internally?"*
    - If **yes**: create the repo (see steps below), push only the deployable bundle files, and document the distribution URL in `README.md`.
    - If **no**: distribution is complete via this repository's tags.
 
@@ -104,7 +110,7 @@ gh repo create <org>/<repo-name> --description "<description>" --internal --conf
 # Clone, copy bundle, and push
 git clone https://github.com/<org>/<repo-name>.git adik-dist-repo
 cd adik-dist-repo
-cp -r ../ADIK.md ../Registry.md ../agents ../skills ../mcp .
+cp -r ../ADIK.md ../ADIK.orchestrator.md ../Registry.md ../agents ../skills ../mcp .
 git add .
 git commit -m "chore: initialise bundle vX.Y.Z"
 git tag vX.Y.Z
@@ -118,17 +124,17 @@ Ensure `MyADIKbuilder.md` and any other source-only files are **never** included
 
 - Documents the **bundle contents** precisely — so you never accidentally ship the wrong files.
 - Defines **versioning rules** — so consumers know when to upgrade.
-- Lists **internal contracts** — the cross-file dependencies between agents, skills, and ADIK.md.
+- Lists **internal contracts** — the cross-file dependencies between agents, skills, and ADIK.orchestrator.md.
 
 ---
 
-## Step 3 — Build the Implementation Orchestrator
+## Step 3 — Build the Standard Definition and Implementation Orchestrator
 
-Create `ADIK.md`. This is the file that lands in every target repository and drives SDK generation.
+Create `ADIK.md` as the standard definition (terminology, contracts, principles) and `ADIK.orchestrator.md` as the operational orchestrator. The orchestrator is the file that lands in every target repository and drives SDK generation.
 
-### Core Sections
+### Core Sections (ADIK.orchestrator.md)
 
-Every `ADIK.md` must contain:
+Every `ADIK.orchestrator.md` must contain:
 
 1. **Purpose** — what the orchestrator does in the target repo.
 2. **Framework Hints Inference** — how the framework infers target frameworks from `architecture.md`, package manifests, and existing agent/skill files.
@@ -141,10 +147,10 @@ Every `ADIK.md` must contain:
 9. **Constraints and Principles** — the rules the framework enforces.
 10. **Related Files** — cross-reference table.
 
-### Minimal ADIK.md Template
+### Minimal ADIK.orchestrator.md Template
 
 ```markdown
-# ADIK.md — [Your Framework Name]
+# ADIK.orchestrator.md — [Your Framework Name]
 
 > **Version:** 1.0.0
 > **Role:** Implementation Orchestrator
@@ -338,7 +344,7 @@ WRITE { runAgents, runSkills, runConfig, runTimestamp, staleArtifacts } to adik.
 9. UPDATE Registry.md metadata
 10. IF vectorMode = "active": INVOKE skills/vectorize.skill.md
 11. APPEND Registry.md changelog
-12. REPORT to ADIK.md
+12. REPORT to ADIK.orchestrator.md
 ```
 
 ---
@@ -498,7 +504,7 @@ Your `README.md` should serve two audiences:
 
 - **What it does** — brief, clear.
 - **Quick Start** — 4 steps: copy bundle → (optional) config → run analyst → run builder.
-- **Key files table** — MyADIKbuilder.md vs ADIK.md vs Registry.md.
+- **Key files table** — MyADIKbuilder.md vs ADIK.md vs ADIK.orchestrator.md vs Registry.md.
 - **Vector support summary** — one paragraph, no implementation details.
 
 ### Audience 2: Developers Building Their Own Framework
@@ -563,14 +569,14 @@ Framework hints: <inferred list or "none">
 Before calling your framework complete, verify:
 
 - [ ] `MyADIKbuilder.md` is NOT in the deployable bundle list.
-- [ ] `ADIK.md` references all agents, skills, and the MCP server in its Related Files table.
+- [ ] `ADIK.orchestrator.md` references all agents, skills, and the MCP server in its Related Files table.
 - [ ] `Registry.md` has all `ADIK:<SECTION>:START/END` markers.
 - [ ] `codebase-analyst.agent.md` infers `frameworkHints` and writes `adik.env.json`.
 - [ ] `codebase-analyst.agent.md` delegates vectorization to `vectorize.skill.md`.
 - [ ] `sdk-consumer.skill.md` reads `frameworkHints` from `adik.env.json` if not explicitly provided.
 - [ ] `vectorize.skill.md` starts with `ASSERT vectorMode = "active"` and exits immediately if not.
-- [ ] `ADIK.md` does not contain any embedding or vector-store implementation details.
-- [ ] Your framework has a version number in both `MyADIKbuilder.md` and `ADIK.md`.
+- [ ] `ADIK.orchestrator.md` does not contain any embedding or vector-store implementation details.
+- [ ] Your framework has a version number in both `MyADIKbuilder.md` and `ADIK.md` / `ADIK.orchestrator.md`.
 - [ ] Your `MyADIKbuilder.md` release workflow prompts the user to optionally create a separate GitHub repository within the same organisation for internal distribution.
 
 ---
@@ -579,7 +585,7 @@ Before calling your framework complete, verify:
 
 ### Why Two Orchestrators?
 
-`ADIKbuilder.md` governs the framework source repository. `ADIK.md` governs target codebases. Keeping them separate prevents the framework's own development machinery from leaking into consumer projects. Every file in the deployable bundle should be something a consumer codebase actually needs.
+`ADIKbuilder.md` governs the framework source repository. `ADIK.md` defines the standard. `ADIK.orchestrator.md` governs target codebases. Keeping them separate prevents the framework's own development machinery from leaking into consumer projects. Every file in the deployable bundle should be something a consumer codebase actually needs.
 
 ### Why Is Vectorization a Subskill?
 
@@ -600,7 +606,8 @@ Agentic pipelines can be interrupted, reconfigured, or run in parallel. Without 
 | File | Role |
 |---|---|
 | `ADIKbuilder.md` | Framework orchestrator for the reference implementation |
-| `ADIK.md` | Implementation orchestrator of the reference implementation |
+| `ADIK.md` | Standard definition of the reference implementation |
+| `ADIK.orchestrator.md` | Operational orchestrator of the reference implementation |
 | `README.md` | Manifesto + dual guide (use this repo / build your own) |
 | `Registry.md` | Symbol registry template |
 | `agents/codebase-analyst.agent.md` | Reference implementation of the analysis agent |

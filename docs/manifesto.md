@@ -1,7 +1,7 @@
 # ADIK Manifesto — The Philosophy of Agentic SDK Generation
 
 > **Part of:** [ADIK — Agentic Development and Implementation Kit](../README.md)
-> **See also:** [`ADIK.md`](../ADIK.md) (implementation orchestrator), [`ADIKbuilder.md`](../ADIKbuilder.md) (framework orchestrator)
+> **See also:** [`ADIK.md`](../ADIK.md) (standard definition), [`ADIK.orchestrator.md`](../ADIK.orchestrator.md) (operational orchestrator), [`ADIKbuilder.md`](../ADIKbuilder.md) (framework orchestrator)
 
 ---
 
@@ -93,7 +93,8 @@ Standardisation matters because it enables:
 | Document | Purpose |
 |---|---|
 | [`README.md`](../README.md) | Overview, quick start, repository layout |
-| [`ADIK.md`](../ADIK.md) | Implementation orchestrator — deployed to target repositories |
-| [`ADIKbuilder.md`](../ADIKbuilder.md) | Framework orchestrator — governs ADIK's own development |
+| [`ADIK.md`](../ADIK.md) | Standard definition — what ADIK is, its terminology, and contracts |
+| [`ADIK.orchestrator.md`](../ADIK.orchestrator.md) | Operational orchestrator — the brain inside every adik |
+| [`ADIKbuilder.md`](../ADIKbuilder.md) | Factory — produces specialized adiks |
 | [`docs/examples/ADIKBuilderExample.md`](examples/ADIKBuilderExample.md) | Step-by-step guide to building your own ADIK from scratch |
 | [`Registry.md`](../Registry.md) | Symbol registry format specification |

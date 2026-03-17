@@ -9,7 +9,8 @@ to maximise adoption while protecting the integrity of the standard.
 
 The following files constitute the **ADIK Specification**:
 
-- `ADIK.md` — Implementation Orchestrator
+- `ADIK.md` — Standard Definition
+- `ADIK.orchestrator.md` — Operational Orchestrator
 - `ADIKbuilder.md` — Framework Orchestrator
 - `Registry.md` — Symbol Registry format specification
 - `docs/manifesto.md` — ADIK philosophy and principles

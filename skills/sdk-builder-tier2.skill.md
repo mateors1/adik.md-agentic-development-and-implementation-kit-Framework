@@ -259,6 +259,40 @@ sdk/kotlin/
 
 ---
 
+## Known Limitations
+
+The following edge cases are documented for transparency. They do not block SDK generation — the
+skill falls back to safe defaults (see Error Handling above) — but teams should be aware:
+
+| Language | Limitation | Workaround |
+|---|---|---|
+| Go | No mapping for `Observable<T>` — not idiomatic in Go | Maps to `chan T`; add custom wrapper if Rx semantics are needed |
+| Java | `Promise<T>` maps to `CompletableFuture<T>` — correct for standard stacks but not for reactive stacks (Project Reactor, RxJava) | Set `tier2Options.java.reactiveProfile` to `"reactor"` or `"rxjava"` (see below) |
+| Kotlin | `Set<T>` maps to immutable `Set<T>` — mutable operations require explicit cast to `MutableSet<T>` | Use `toMutableSet()` in consuming code if mutation is needed |
+| All | Deeply nested generics (e.g., `Map<String, List<Set<T>>>`) may produce verbose type signatures | Consider flattening types in the Registry with intermediate type aliases |
+
+### Java Reactive Profile (optional)
+
+Add `reactiveProfile` to `tier2Options.java` in `adik.config.json`:
+
+```jsonc
+{
+  "tier2Options": {
+    "java": {
+      "reactiveProfile": "reactor"  // "completable-future" (default) | "reactor" | "rxjava"
+    }
+  }
+}
+```
+
+| Profile | `Promise<T>` | `Promise<List<T>>` |
+|---|---|---|
+| `completable-future` | `CompletableFuture<T>` | `CompletableFuture<List<T>>` |
+| `reactor` | `Mono<T>` | `Flux<T>` |
+| `rxjava` | `Single<T>` | `Observable<T>` |
+
+---
+
 ## Invocation Example
 
 ```

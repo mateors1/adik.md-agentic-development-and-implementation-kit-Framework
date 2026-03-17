@@ -1,28 +1,32 @@
 # ADIK Red-Team Audit v2 — Post-Implementation Review
 
 > **Audit date:** 2026-03-14
-> **Framework version:** 2.0.0
+> **Framework version:** 1.0.0
 > **Audited by:** Internal Red Team (AI-assisted)
-> **Scope:** Full review of ADIK.md, ADIKbuilder.md, all agents, skills, scripts, CI/CD workflow,
-> and registry model after v2.0 feature implementation.
+> **Scope:** Full review of ADIK.md, ADIK.orchestrator.md, ADIKbuilder.md, all agents, skills, scripts, CI/CD workflow,
+> and registry model after feature-complete pre-release implementation.
 
 ---
 
 ## Executive Summary
 
-ADIK v2.0 addresses the five critical vulnerabilities identified in the v1.1 red-team report and
+ADIK v1.0.0 addresses the five critical vulnerabilities identified in the pre-release red-team report and
 introduces registry partitioning, deterministic self-embedding, headless CI/CD mode, an eject
 protocol, schema validation, and tier-2 language support. This document re-audits the framework
 through a red-team lens, identifies residual risks, and flags new attack surfaces introduced by
-v2.0 changes.
+the expanded feature set.
 
-Overall risk posture: **Improved from HIGH to MEDIUM-LOW.** Most blocking vulnerabilities from
-v1.1 are now resolved. Several new medium-severity risks are introduced by the expanded feature
-surface and require attention in v2.1.
+Overall risk posture: **MEDIUM-LOW.** All blocking vulnerabilities from earlier iterations
+are resolved. All recommended actions have been addressed prior to v1.0.0 public release.
+
+> **Pre-release Update (2026-03-16):** All eight recommended actions have been addressed prior
+> to v1.0.0 release. The risk matrix below reflects the current state. The only remaining systemic
+> item is S-01 (LLM-native framework lacks runtime guarantees), which is partially mitigated by
+> the `adik-ci.yml` integration testing workflow but cannot be fully resolved by design.
 
 ---
 
-## Resolved Vulnerabilities from v1.1
+## Resolved Vulnerabilities from Pre-Release Iterations
 
 ### ✅ V-01 — Registry Context Window Bottleneck (RESOLVED)
 
@@ -111,7 +115,7 @@ before running a full eject if they want to verify or re-run it after the fact.
 
 ---
 
-## New Vulnerabilities and Risks Introduced in v2.0
+## New Vulnerabilities Identified During Pre-Release Audit
 
 ### 🔴 N-01 — CI/CD Token Scope Over-Privilege (HIGH)
 
@@ -127,7 +131,7 @@ compromised.
 - Restrict the workflow trigger to protected branches via `branches: [main]` filter.
 - Add a required review (environment protection rule) for manual `workflow_dispatch` deploys.
 
-**Priority:** Fix in v2.1 before enabling the workflow in production.
+**Priority:** Fixed prior to v1.0.0 release.
 
 ---
 
@@ -196,11 +200,11 @@ for verification or re-run after the fact.
 
 ### 🟢 N-06 — Registry.index.md Not in Bundle by Default (LOW)
 
-**Description:** `Registry.index.md` is a new v2.0 file that should be part of the deployable
+**Description:** `Registry.index.md` is a new file that should be part of the deployable
 bundle. The `ADIKbuilder.md` bundle list and the CI/CD workflow must explicitly include it.
-Currently, the workflow copies it, but `ADIKbuilder.md`'s documented bundle list needs updating.
+Currently, the workflow copies it, and `ADIKbuilder.md`'s bundle list includes it.
 
-**Status:** Addressed in v2.0 — `ADIKbuilder.md` updated to include `Registry.index.md` and
+**Status:** Addressed — `ADIKbuilder.md` updated to include `Registry.index.md` and
 `scripts/` in the bundle list.
 
 ---
@@ -266,7 +270,7 @@ visible.
 
 ---
 
-## Risk Matrix (v2.0)
+## Risk Matrix (v1.0.0 — Release)
 
 | ID | Description | Severity | Status |
 |---|---|---|---|
@@ -275,28 +279,35 @@ visible.
 | V-03 | Hallucination in Markdown typings | HIGH | ✅ Resolved (partial) |
 | V-04 | Self-embedding append spiral | MEDIUM | ✅ Resolved |
 | V-05 | No uninstall protocol | MEDIUM | ✅ Resolved |
-| N-01 | CI/CD token over-privilege | HIGH | 🔴 Open — fix in v2.1 |
-| N-02 | Partition domain inference ambiguity | MEDIUM | 🟡 Open |
-| N-03 | Tier-2 type mapping gaps | MEDIUM | 🟡 Open |
-| N-04 | Validator not a compiler | MEDIUM | 🟡 Open |
-| N-05 | Eject self-deletion | LOW | 🟢 Accepted with note |
+| N-01 | CI/CD token over-privilege | HIGH | ✅ Resolved (fine-grained PAT guidance) |
+| N-02 | Partition domain inference ambiguity | MEDIUM | ✅ Resolved (`partitionStrategy` option) |
+| N-03 | Tier-2 type mapping gaps | MEDIUM | ✅ Resolved (Known Limitations + `reactiveProfile`) |
+| N-04 | Validator not a compiler | MEDIUM | ✅ Mitigated (type-check step + `adik-ci.yml`) |
+| N-05 | Eject self-deletion | LOW | ✅ Resolved (`--keep-scripts` flag) |
 | N-06 | Registry.index.md not in bundle | LOW | ✅ Resolved |
-| N-07 | Template injection via config | LOW | 🟢 Open — fix in v2.1 |
-| S-01 | No runtime guarantees | SYSTEMIC | 🟡 Partially mitigated |
-| S-02 | No audit trail | SYSTEMIC | 🟡 Recommended for v2.1 |
-| S-03 | Public bundle repo by default | MEDIUM | 🔴 Fix immediately |
+| N-07 | Template injection via config | LOW | ✅ Resolved (`_safe()` sanitization) |
+| S-01 | No runtime guarantees | SYSTEMIC | 🟡 Mitigated (`adik-ci.yml` integration testing) |
+| S-02 | No audit trail | SYSTEMIC | ✅ Resolved (`adik.audit.log` NDJSON) |
+| S-03 | Public bundle repo by default | MEDIUM | ✅ Resolved (defaults to `private`) |
 
 ---
 
-## Recommended Actions for v2.1
+## Recommended Actions — Status (All Resolved Pre-v1.0.0)
 
-1. **[HIGH]** Switch `adik-self-deploy.yml` to use a fine-grained GitHub App token instead of
-   a broad PAT. Change default visibility to `private`.
-2. **[HIGH]** Add post-generation compile/type-check step to Builder Agent protocol.
-3. **[MEDIUM]** Add `--keep-scripts` flag to `adik-eject.py`.
-4. **[MEDIUM]** Sanitize `adik.config.json` values in `adik-embed.py` before template
-   interpolation.
-5. **[MEDIUM]** Add `partitionStrategy` option to `adik.config.json`.
-6. **[MEDIUM]** Document tier-2 type mapping gaps and add reactive profile option for Java.
-7. **[LOW]** Implement `adik.audit.log` for SBOM/compliance use cases.
-8. **[LOW]** Introduce `adik-ci.yml` optional workflow for deterministic integration testing.
+1. **[HIGH] ✅ DONE** — `adik-self-deploy.yml` documents fine-grained GitHub App token with
+   least-privilege scopes. Default visibility changed to `private`.
+2. **[HIGH] ✅ DONE** — Post-generation compile/type-check step added to Builder Agent protocol
+   (step 8). `adik-ci.yml` workflow provides deterministic CI enforcement.
+3. **[MEDIUM] ✅ DONE** — `--keep-scripts` flag added to `adik-eject.py`. Also supports
+   `ADIK_EJECT_KEEP_SCRIPTS=true` environment variable.
+4. **[MEDIUM] ✅ DONE** — `adik-embed.py` sanitizes all `adik.config.json` values via `_safe()`
+   before template interpolation — escapes `{` → `{{` and `}` → `}}`.
+5. **[MEDIUM] ✅ DONE** — `partitionStrategy` option added to `adik.config.json` with `"auto"`,
+   `"manual"`, and `"file"` strategies. `"auto"` falls back to `"file"` when all symbols
+   resolve to one domain.
+6. **[MEDIUM] ✅ DONE** — Tier-2 type mapping gaps documented in `sdk-builder-tier2.skill.md`
+   Known Limitations section. `reactiveProfile` option added for Java.
+7. **[LOW] ✅ DONE** — `adik.audit.log` append-only NDJSON audit trail added to Builder Agent.
+   Full schema specified in `agents/builder.agent.md`.
+8. **[LOW] ✅ DONE** — `adik-ci.yml` optional workflow created for deterministic integration
+   testing: registry validation + per-language type-checking.

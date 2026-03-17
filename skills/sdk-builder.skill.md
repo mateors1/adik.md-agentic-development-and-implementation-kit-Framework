@@ -187,4 +187,4 @@ ELSE IF projectType == "library":
 | `Registry.md` | Source of truth consumed by this skill |
 | `agents/builder.agent.md` | Invoker of this skill |
 | `skills/sdk-consumer.skill.md` | Sibling skill generating consumption boilerplate |
-| `ADIK.md` | Root orchestrator |
+| `ADIK.orchestrator.md` | Root orchestrator |

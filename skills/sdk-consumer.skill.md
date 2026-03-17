@@ -182,4 +182,4 @@ Enums are serialized as their string name (not numeric value) by default, for ma
 | `Registry.md` | Source of truth consumed by this skill |
 | `agents/builder.agent.md` | Invoker of this skill |
 | `skills/sdk-builder.skill.md` | Sibling skill generating the SDK packages |
-| `ADIK.md` | Root orchestrator |
+| `ADIK.orchestrator.md` | Root orchestrator |

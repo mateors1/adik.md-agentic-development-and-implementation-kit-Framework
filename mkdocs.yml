@@ -34,8 +34,19 @@ plugins:
 
 nav:
   - Home: index.md
+  - Quickstart: quickstart-guide.md
+  - Architecture: architecture.md
   - Manifesto: manifesto.md
-  - Build Your Own ADIK: examples/ADIKBuilderExample.md
+  - Standard:
+    - ADIK Standard Specification: standard.md
+  - Examples:
+    - Pre-Deployment Walkthrough: examples/pre-deployment.md
+    - "Showcase: Payments API (NestJS)": examples/showcase-payments-api.md
+    - "Showcase: Task Manager (FastAPI)": examples/showcase-task-manager.md
+    - "Showcase: Chat Service (TypeScript)": examples/showcase-chat-service.md
+    - Build Your Own ADIK: examples/ADIKBuilderExample.md
+    - Scaffold (Master Prompt): examples/scaffold.md
+  - Security Audit: red-team-audit-v2.md
 
 markdown_extensions:
   - tables

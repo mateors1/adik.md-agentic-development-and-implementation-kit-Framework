@@ -36,7 +36,8 @@ COPILOT_BLOCK = """\
 
 This project uses **ADIK** for automated SDK generation and maintenance.
 
-- **Orchestrator:** `ADIK.md` (implementation orchestrator)
+- **Orchestrator:** `ADIK.orchestrator.md` (operational orchestrator)
+- **Standard:** `ADIK.md` (standard definition)
 - **Registry:** `{registry_path}` (single source of truth for all public symbols)
 - **Agents:** `agents/builder.agent.md`, `agents/codebase-analyst.agent.md`
 - **Skills:** `skills/sdk-builder.skill.md`, `skills/sdk-consumer.skill.md`,
@@ -60,7 +61,8 @@ CLAUDE_BLOCK = """\
 
 **Executive Summary:** {project_summary}
 
-**Orchestrator:** `ADIK.md`
+**Orchestrator:** `ADIK.orchestrator.md`
+**Standard:** `ADIK.md`
 **Registry:** `{registry_path}`
 **SDK output:** `sdk/` ({sdk_languages})
 **ADIK reach:** {adik_reach}
@@ -179,7 +181,8 @@ def _gather_context(target: Path) -> dict:
     adik_reach = "src/**/* → Registry.md → sdk/"
 
     def _safe(value: str) -> str:
-        """Escape curly braces in user-supplied strings to prevent format-string injection."""
+        """Sanitize user-supplied strings for safe use in str.format() templates.
+        Escapes curly braces to prevent format-string injection."""
         return str(value).replace("{", "{{").replace("}", "}}")
 
     # Read adik.env.json if present.
@@ -230,22 +233,16 @@ def _gather_context(target: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _escape_braces(value):
-    """Escape braces in strings so they are treated as literals by str.format."""
-    if isinstance(value, str):
-        return value.replace("{", "{{").replace("}", "}}")
-    return value
-
-
 def action_upsert(target: Path) -> None:
     """Insert or update the ADIK block in all three context files."""
     ctx = _gather_context(target)
-    safe_ctx = {key: _escape_braces(val) for key, val in ctx.items()}
+    # Values from _gather_context are already brace-escaped via _safe().
+    # Do NOT double-escape here.
 
     files = {
-        target / ".github" / "copilot-instructions.md": COPILOT_BLOCK.format(**safe_ctx),
-        target / "CLAUDE.md": CLAUDE_BLOCK.format(**safe_ctx),
-        target / "agents.md": AGENTS_BLOCK.format(**safe_ctx),
+        target / ".github" / "copilot-instructions.md": COPILOT_BLOCK.format(**ctx),
+        target / "CLAUDE.md": CLAUDE_BLOCK.format(**ctx),
+        target / "agents.md": AGENTS_BLOCK.format(**ctx),
     }
 
     for path, block in files.items():
