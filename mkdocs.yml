@@ -38,6 +38,8 @@ nav:
     - Quickstart Guide: getting-started/quickstart-guide.md
     - Pre-Deployment Walkthrough: getting-started/pre-deployment.md
     - Configuration Reference: getting-started/configuration.md
+    - "Cheat Sheet: Building an adik": getting-started/cheatsheet-building.md
+    - "Cheat Sheet: Consuming a Generated SDK": getting-started/cheatsheet-consuming.md
   - Specification:
     - ADIK Standard: specification/standard.md
     - Architecture: specification/architecture.md

@@ -121,7 +121,9 @@ This repository contains the ADIK **framework source** — both the specificatio
 │   ├── getting-started/               ← Onboarding & configuration
 │   │   ├── quickstart-guide.md        ← 15-minute first-run walkthrough
 │   │   ├── pre-deployment.md          ← Bundle walkthrough before first run
-│   │   └── configuration.md           ← adik.config.json reference
+│   │   ├── configuration.md           ← adik.config.json reference
+│   │   ├── cheatsheet-building.md     ← Quick-ref for building an adik
+│   │   └── cheatsheet-consuming.md    ← Quick-ref for consuming a generated SDK
 │   ├── specification/                 ← Formal standard & design
 │   │   ├── standard.md                ← ADIK Standard Specification
 │   │   ├── architecture.md            ← System architecture with Mermaid diagrams
@@ -193,6 +195,8 @@ Source code is never touched. Only ADIK artifacts are removed.
 | **[Quickstart Guide](docs/getting-started/quickstart-guide.md)** | 15-minute first-run walkthrough |
 | **[Pre-Deployment Walkthrough](docs/getting-started/pre-deployment.md)** | What the bundle looks like before running |
 | **[Configuration Reference](docs/getting-started/configuration.md)** | `adik.config.json` schema and defaults |
+| **[Cheat Sheet: Building](docs/getting-started/cheatsheet-building.md)** | Quick-reference for deploying and running the ADIK pipeline |
+| **[Cheat Sheet: Consuming](docs/getting-started/cheatsheet-consuming.md)** | Quick-reference for integrating a generated SDK |
 | **[ADIK Standard Specification](docs/specification/standard.md)** | Formal spec — what makes a framework ADIK-compatible |
 | **[Architecture](docs/specification/architecture.md)** | System diagram, delegation model, data flow |
 | **[Manifesto](docs/specification/manifesto.md)** | Philosophy and core principles |
