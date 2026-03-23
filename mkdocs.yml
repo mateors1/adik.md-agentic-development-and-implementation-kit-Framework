@@ -52,6 +52,8 @@ nav:
     - Scaffold (Master Prompt): examples/scaffold.md
   - Security:
     - Red-Team Audit: security/red-team-audit-v2.md
+  - Ecosystem:
+    - "GitHub Spec Kit: Analysis & Integration": ecosystem/spec-kit.md
   - Community:
     - Launch Posts: community/launch-posts.md
 
