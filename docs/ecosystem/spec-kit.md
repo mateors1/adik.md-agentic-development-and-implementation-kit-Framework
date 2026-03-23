@@ -1,376 +1,560 @@
-# ADIK & GitHub Spec Kit — Ecosystem Analysis
+# ADIK & GitHub Spec Kit — Full Specification Analysis
 
 > **Part of:** [ADIK — Agentic Development and Implementation Kit](../../README.md)
-> **See also:** [`ADIK.md`](../../ADIK.md) (standard definition), [`docs/specification/manifesto.md`](../specification/manifesto.md) (ADIK philosophy), [`docs/community/launch-posts.md`](../community/launch-posts.md)
+> **See also:** [`ADIK.md`](../../ADIK.md), [`docs/specification/standard.md`](../specification/standard.md),
+> [`ADIK.orchestrator.md`](../../ADIK.orchestrator.md), [`ADIKbuilder.md`](../../ADIKbuilder.md)
+
+This document provides a comprehensive, file-level comparison of the ADIK framework against GitHub Spec Kit
+([github.com/github/spec-kit](https://github.com/github/spec-kit)) — an open-source, AI-native
+**Spec-Driven Development (SDD)** standard backed by GitHub, Anthropic, and Microsoft. The analysis
+draws on every ADIK component, not just top-level documentation.
 
 ---
 
-## Summary: What is GitHub Spec Kit?
+## Part 1 — What Is GitHub Spec Kit? A Technical Summary
 
-**GitHub Spec Kit** ([github.com/github/spec-kit](https://github.com/github/spec-kit)) is an open-source
-toolkit for **Spec-Driven Development (SDD)** — a methodology that inverts the traditional relationship
-between specifications and code. Where traditional development treats specs as throwaway scaffolding, SDD
-makes specifications the primary, executable artifact: code becomes the output of a living, versioned spec,
-not the other way around.
+### Philosophy
 
-Spec Kit was developed in collaboration with engineers from GitHub, Microsoft, and Anthropic, and is
-designed to work with virtually every major AI coding agent — Claude Code, GitHub Copilot, Gemini CLI,
-Cursor, Codex CLI, Windsurf, and 20+ others.
+Spec Kit inverts traditional software development: **specifications become the executable source of
+truth; code is their output.** It defines a structured, AI-mediated workflow that turns a natural-language
+product idea into a running application via five ordered phases.
 
-### Core Concepts
+### Core Workflow Phases
 
-| Concept | Description |
-|---|---|
-| **Constitution** | Governing principles for a project — coding standards, security guidelines, governance rules. Created via `/speckit.constitution`. |
-| **Specification** | Formal requirements and user stories focused on *what* to build, not *how*. Created via `/speckit.specify`. |
-| **Clarification** | Structured ambiguity resolution before technical planning. `/speckit.clarify`. |
-| **Plan** | Technical architecture and implementation breakdown for a chosen stack. `/speckit.plan`. |
-| **Tasks** | Granular, executable task list generated from the plan. `/speckit.tasks`. |
-| **Implementation** | AI-driven code generation from the task list. `/speckit.implement`. |
-| **Analysis** | Cross-artifact consistency and coverage checks. `/speckit.analyze`. |
+| Phase | Slash Command | Output Artifact | Purpose |
+|---|---|---|---|
+| Constitution | `/speckit.constitution` | `.specify/memory/constitution.md` | Governing principles — coding standards, security, governance |
+| Specification | `/speckit.specify` | `.specify/specs/<feature>/spec.md` | Requirements and user stories; *what* to build, not *how* |
+| Clarification | `/speckit.clarify` | Appended to `spec.md` | Structured ambiguity resolution before planning |
+| Plan | `/speckit.plan` | `.specify/specs/<feature>/plan.md`, `data-model.md`, `research.md`, `contracts/api-spec.json` | Technical architecture, stack choices, API contracts |
+| Tasks | `/speckit.tasks` | `.specify/specs/<feature>/tasks.md` | Granular implementation task list |
+| Implementation | `/speckit.implement` | Source code | AI-driven code generation from task list |
+| Analysis | `/speckit.analyze` | Report | Cross-artifact consistency and gap analysis |
+| Checklist | `/speckit.checklist` | Checklist doc | Quality validation against requirements |
 
-### Directory Structure Produced by Spec Kit
+### Directory Structure
 
 ```
 .specify/
 ├── memory/
-│   └── constitution.md          ← Project governing principles
-├── scripts/                     ← Automation helpers
+│   └── constitution.md            ← Project governing principles (persists across features)
+├── scripts/                       ← Shell automation helpers
 ├── specs/
-│   └── 001-create-taskify/
-│       ├── spec.md              ← Requirements & user stories
-│       ├── plan.md              ← Technical implementation plan
-│       ├── data-model.md        ← Data model
-│       ├── research.md          ← Stack research notes
-│       ├── tasks.md             ← Granular task list
+│   └── 001-create-taskify/        ← One directory per feature/branch
+│       ├── spec.md                ← Requirements and user stories
+│       ├── plan.md                ← Technical plan
+│       ├── data-model.md          ← Data model
+│       ├── research.md            ← Stack research
+│       ├── tasks.md               ← Granular task list
 │       └── contracts/
-│           ├── api-spec.json    ← API contract (OpenAPI/JSON)
-│           └── signalr-spec.md  ← Protocol contracts
-└── templates/                   ← Customizable spec/plan/task templates
+│           ├── api-spec.json      ← OpenAPI/JSON API contract
+│           └── signalr-spec.md    ← Protocol contracts
+└── templates/
+    ├── spec-template.md
+    ├── plan-template.md
+    └── tasks-template.md
 ```
 
 ### Extension and Preset System
 
-Spec Kit ships with a formal extension and preset system:
+Spec Kit has a formal, publicly documented extension ecosystem:
 
-- **Extensions** add new commands and workflows (`specify extension add <name>`). They expand *what Spec Kit can do* — Jira integration, post-implementation code review, V-Model test traceability, etc.
-- **Presets** override templates and terminology without adding commands. They customize *how Spec Kit works* — compliance formats, domain-specific vocabulary, organizational standards.
-- A **community catalog** (`extensions/catalog.community.json`) accepts community-submitted extensions via PR to the main spec-kit repository.
+- **Extensions** introduce new commands and workflow phases (e.g., Jira sync, code review, V-Model
+  test traceability). Published via `specify extension add <name>`.
+- **Presets** override existing templates and terminology without adding commands (e.g., compliance
+  formats, Agile/Kanban vocabulary, pirate-speak).
+- A **community catalog** (`extensions/catalog.community.json`) lists all community extensions.
+  Submission is via PR to the `github/spec-kit` repository.
+- A **priority stack** governs template resolution: project-level overrides → presets → extensions → core.
 
-### Philosophy in One Sentence
+### AI Agent Support
 
-> *Specifications are the source of truth. Code is their expression. AI is the transformation engine.*
+Spec Kit supports 25+ AI coding agents: GitHub Copilot, Claude Code, Gemini CLI, Cursor, Codex CLI,
+Windsurf, Qwen Code, Roo Code, Amp, Kiro CLI, Jules, and more. Commands are installed as slash-command
+template files (`.claude/commands/`, `.github/copilot-instructions`, etc.) or as agent skills.
 
----
+### The `specify` CLI
 
-## The Two-Layer Model: Why ADIK and Spec Kit Complement Each Other
-
-Before comparing the frameworks, it helps to map them to the software development lifecycle:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    FULL DEVELOPMENT PIPELINE                    │
-├─────────────────────────────────────────────────────────────────┤
-│  LAYER 1 — What to Build (Spec Kit)                             │
-│  Constitution → Specify → Clarify → Plan → Tasks → Implement   │
-│  Output: spec.md, plan.md, tasks.md, contracts/api-spec.json   │
-├─────────────────────────────────────────────────────────────────┤
-│  LAYER 2 — How Others Consume What Was Built (ADIK)             │
-│  Analyse → Registry → SDK Generation → Boilerplate → Embed     │
-│  Output: TypeScript/Python/C#/Go/Java/Kotlin SDK packages      │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Spec Kit operates at the application layer**: it answers "what does this software do and why?" It
-produces the specification, plan, and implementation of a feature or application.
-
-**ADIK operates at the SDK/API contract layer**: it answers "how do other developers consume what was
-built?" It produces publish-ready, self-maintaining SDK packages, framework-idiomatic boilerplate, and
-AI-context embeddings for the generated API.
-
-These layers are adjacent and complementary, not competing. A team could use Spec Kit to specify, plan,
-and implement a payments API — and then deploy ADIK to generate the TypeScript, Python, and C# SDKs that
-external developers use to call it. Both tools serve the same codebase, at different phases of its
-lifecycle.
+A Python-based CLI (`specify init <project> --ai <agent>`) bootstraps a Spec Kit project. It:
+- Creates the `.specify/` directory with appropriate templates
+- Installs slash-command files for the chosen AI agent
+- Optionally initialises a Git repository with branch-per-feature conventions
 
 ---
 
-## Is ADIK a Complement? YES
+## Part 2 — ADIK Full Component Inventory
 
-ADIK and Spec Kit are **natural complements** that together cover the full lifecycle from specification to
-self-maintaining multi-language SDK.
+Before comparing, here is every ADIK component and what it does:
 
-### How They Fit Together
-
-#### Phase 1 — Spec Kit's Output Feeds ADIK's Input
-
-Spec Kit's `/speckit.plan` produces API contract artifacts like `contracts/api-spec.json` (OpenAPI/JSON).
-ADIK's Codebase Analyst agent reads the codebase to build `Registry.md`. These are different representations
-of the same thing: the API contract. A bridge between them is natural and achievable:
-
-```
-Spec Kit produces:  contracts/api-spec.json  ──┐
-                                                ├──▶  ADIK Registry.md  ──▶  SDKs
-ADIK reads:         source code, endpoints    ──┘
-```
-
-#### Phase 2 — ADIK Generates What Spec Kit's `/speckit.implement` Would Hand-Code
-
-After Spec Kit builds the application, ADIK generates:
-- Publish-ready SDK packages in TypeScript, Python, C#, Go, Java, and Kotlin
-- Framework-idiomatic integration boilerplate (NestJS DI wiring, FastAPI dependency injection, ASP.NET middleware)
-- Retry wrappers, serialization helpers, and authentication adapters
-
-This is work that Spec Kit's implementation phase would otherwise leave to the developer manually.
-
-#### Phase 3 — ADIK's AI Self-Embedding Enriches Spec Kit Workflows
-
-ADIK embeds SDK context into `.github/copilot-instructions.md`, `CLAUDE.md`, and `agents.md`. Any
-AI agent (including the same Claude Code or Copilot that Spec Kit uses) automatically understands the
-API surface, generated SDK structure, and integration patterns — with zero extra configuration.
-
-#### Phase 4 — ADIK's Self-Maintenance Keeps SDKs in Sync Across Spec Iterations
-
-When Spec Kit drives a new feature iteration and the implementation changes, ADIK's CI pipeline
-re-analyses, re-validates, and re-generates all SDKs automatically. The spec-to-SDK chain becomes
-continuous.
-
----
-
-## Are We Compliant with Spec Kit's Standard?
-
-Spec Kit is a **methodology and tooling standard**, not a strict protocol with a machine-readable
-compliance schema. It does not publish a JSON schema or contract file that other tools must satisfy.
-Compliance is conceptual and behavioural.
-
-### Current Alignment Assessment
-
-| Spec Kit Principle | ADIK Alignment | Status |
+| File | Layer | Role |
 |---|---|---|
-| Specifications as the source of truth | ADIK has its own source of truth (`Registry.md`) derived from code, not from specs | ✅ Complementary — different layers |
-| Version-controlled spec artifacts | `Registry.md` is version-controlled; ADIK appends to `adik.audit.log` for traceability | ✅ Aligned |
-| AI-native workflows | ADIK is built entirely for AI agents; all artifacts are optimized for LLM context windows | ✅ Aligned |
-| Extensibility | ADIK's agent/skill architecture is extension-first by design | ✅ Aligned |
-| Multi-agent support | ADIK supports Copilot, Claude, Cursor, and any AI agent via self-embedding | ✅ Aligned |
-| Contract artifacts as planning output | ADIK currently reads source code; does not yet consume `api-spec.json` directly | ⚠️ Gap — see below |
-| Branch-per-feature workflow | ADIK operates project-wide; does not track Spec Kit feature branches | ⚠️ Gap — see below |
-
-### Gaps to Close for Full Alignment
-
-1. **API contract import**: ADIK's Codebase Analyst should optionally ingest `contracts/api-spec.json`
-   (OpenAPI format) produced by Spec Kit's `/speckit.plan` phase as a Registry bootstrap input. This
-   would make the Spec Kit → ADIK handoff seamless.
-
-2. **Feature-branch awareness**: ADIK currently generates a project-wide registry. Adding support for
-   per-feature registry partitions (aligned with Spec Kit's `001-feature-name` branch structure) would
-   enable incremental SDK generation that mirrors Spec Kit's incremental development model.
-
-3. **Spec reference in Registry**: ADIK's `Registry.md` could optionally record a `specRef` field
-   per endpoint or symbol, linking back to the `spec.md` that originally described that requirement.
-   This would provide traceability across both layers.
-
----
-
-## Is ADIK a Competitor? No — With Important Nuance
-
-ADIK and Spec Kit **do not compete** in their primary purposes:
-
-- Spec Kit answers: *"What should this software do, and how should we build it?"*
-- ADIK answers: *"How do other developers consume this software after it is built?"*
-
-Neither framework provides the other's core capability. Spec Kit has no SDK generation. ADIK has no
-specification or planning workflow.
-
-### The Surface Area Overlap
-
-There is one area of conceptual overlap: both frameworks promote a **spec-as-source-of-truth** philosophy.
-
-- Spec Kit's spec is a human-readable requirements document (`spec.md`)
-- ADIK's registry is a machine-readable symbol catalog (`Registry.md`)
-
-These serve different audiences at different stages of the lifecycle. They are not the same artifact, and
-neither replaces the other.
-
-### The Ecosystem Risk
-
-If Spec Kit's extension ecosystem grows to include SDK generation extensions, there could eventually be
-direct overlap. The defensive answer is clear: **ADIK should become a first-class Spec Kit extension**
-before that gap is filled by someone else (see below). An ADIK presence in the Spec Kit extension catalog
-secures ADIK's position as *the* SDK generation layer in the SDD workflow.
+| `ADIK.md` | Standard | Defines what ADIK is, terminology (adik/ADIK), lifecycle, reach table, and 10 standard contracts |
+| `ADIK.orchestrator.md` | Deployed | Operational brain inside every adik — startup protocol, pipeline execution, headless mode, vector/RAG support |
+| `ADIKbuilder.md` | Factory | Source-repo-only orchestrator that produces specialized adik bundles |
+| `docs/specification/standard.md` | Spec | RFC-style formal spec with MUST/SHOULD conformance levels (Core, Extended, Full) |
+| `Registry.md` | Data | Language-agnostic symbol registry template (YAML entries, section guard markers) |
+| `Registry.index.md` | Data | Master index for partitioned registries (domain partition table) |
+| `agents/codebase-analyst.agent.md` | Agent | Environment probe, project-type detection, framework inference, source scanning, Registry population |
+| `agents/builder.agent.md` | Agent | Registry validation, SDK generation coordination, audit log, self-embedding |
+| `skills/sdk-builder.skill.md` | Skill | Tier-1 SDK generation: TypeScript, Python, C# — full package with client, models, types, errors |
+| `skills/sdk-builder-tier2.skill.md` | Skill | Tier-2 SDK generation (opt-in): Go, Java, Kotlin — mirrors tier-1 contract |
+| `skills/sdk-consumer.skill.md` | Skill | Framework-idiomatic boilerplate — examples, DI wiring, retry wrappers, serialization helpers |
+| `skills/registry-validator.skill.md` | Skill | Three-level validation gate (Structural, Type, Semantic) before every SDK generation |
+| `skills/vectorize.skill.md` | Skill | Vector embedding and upsert — isolated from all other pipeline components |
+| `scripts/adik-embed.py` | Script | Deterministic self-embedding into context files using `<!-- ADIK:START/END -->` guards |
+| `scripts/adik-eject.py` | Script | Clean uninstall — removes all ADIK artifacts without touching source code |
+| `scripts/adik-deploy.py` | Script | Factory-side bundle assembly and deployment (source repo only) |
+| `mcp/adik-mcp-server.md` | Infra | MCP server exposing 8 tools + 5 resources + 2 prompt templates |
+| `docs/specification/architecture.md` | Docs | Mermaid flow diagrams, agent-skill delegation model, data flow |
+| `docs/specification/manifesto.md` | Docs | 4 core principles: single source of truth, inference over configuration, context cleanliness, graceful degradation |
+| `adik-lint.py` | Tooling | ADIK.md specification linter |
+| `ROADMAP.md` | Planning | Versioned feature roadmap (v1.0.0 through v2.0.0) |
 
 ---
 
-## Offering ADIK as a Spec Kit Extension
+## Part 3 — The Two-Layer Model: Where Each Framework Operates
 
-Spec Kit's extension system is well-defined and publicly documented. Publishing ADIK as a Spec Kit
-extension is entirely feasible and strategically important.
+The most precise way to understand the relationship is to map both frameworks to the software lifecycle:
 
-### What a Spec Kit Extension Requires
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────┐
+│  LAYER 0 — INTENT: What to build and why                         SPEC KIT               │
+│  Constitution → Specify → Clarify → Plan → Tasks → Implement                            │
+│  Artifacts: constitution.md, spec.md, plan.md, contracts/api-spec.json, tasks.md, code  │
+├──────────────────────────────────────────────────────────────────────────────────────────┤
+│  LAYER 1 — CONTRACT: What the built thing exposes               ADIK BEGINS HERE        │
+│  Codebase Analyst → Registry.md (symbol registry — endpoints, types, schemas)           │
+├──────────────────────────────────────────────────────────────────────────────────────────┤
+│  LAYER 2 — DISTRIBUTION: How others consume what was built       ADIK                   │
+│  Registry → SDK Packages (TS, Python, C#, Go, Java, Kotlin)                             │
+│  Registry → Boilerplate (DI wiring, retry wrappers, examples)                           │
+│  Registry → AI Context (Copilot, Claude, Cursor self-embedding)                          │
+│  Registry → MCP Server (programmatic API for agents)                                    │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Spec Kit's final artifact (Layer 0) is the application code. ADIK's first artifact (Layer 1) is a
+structured representation of that code. The two frameworks are not competing for the same layer.
+
+---
+
+## Part 4 — Is ADIK a Complement? YES — Here Is the Precise Handoff
+
+### 4.1 The Handoff Point: `contracts/api-spec.json` → `Registry.md`
+
+When Spec Kit's `/speckit.plan` produces `contracts/api-spec.json`, it emits exactly what ADIK's
+Codebase Analyst Agent is designed to read. The Codebase Analyst already has an explicit rule for
+this case (from `agents/codebase-analyst.agent.md` §Symbol Discovery Strategy):
+
+```
+IF OpenAPI spec (openapi.yaml / swagger.json) exists
+  OR route definitions found (Express routes, FastAPI decorators, ASP.NET controllers)
+  → projectType = "api"
+```
+
+ADIK already parses OpenAPI specs as a first-class input. The only gap is the path convention:
+ADIK currently looks for `openapi.yaml` / `swagger.json` at the root, while Spec Kit places the
+contract at `.specify/specs/<feature>/contracts/api-spec.json`. A one-line configuration in
+`adik.config.json` would bridge this:
+
+```json
+{
+  "includePatterns": [
+    "src/**/*",
+    ".specify/specs/*/contracts/api-spec.json"
+  ]
+}
+```
+
+### 4.2 Phase-by-Phase Integration
+
+| Spec Kit Phase | Spec Kit Output | ADIK Integration Point |
+|---|---|---|
+| **Constitution** | `constitution.md` — coding standards, stack constraints | No direct ADIK integration; constitution may constrain `sdkLanguages` or `tier2Languages` choices |
+| **Specify** | `spec.md` — requirements, user stories, acceptance criteria | No direct integration; spec.md is human-readable requirements, not a symbol catalog |
+| **Clarify** | Appended to `spec.md` | No direct integration |
+| **Plan** | `plan.md`, `data-model.md`, **`contracts/api-spec.json`** | **Primary handoff**: `api-spec.json` is a valid input to the Codebase Analyst Agent (`projectType: "api"` path) |
+| **Tasks** | `tasks.md` | No direct integration |
+| **Implement** | Source code | **Primary ADIK trigger**: after implementation, ADIK's Codebase Analyst scans the source and produces `Registry.md` |
+| **Analyze** | Consistency report | No direct integration |
+
+### 4.3 What ADIK Adds After Spec Kit Finishes
+
+Once Spec Kit's `/speckit.implement` produces working code, ADIK's pipeline takes over:
+
+```
+Spec Kit output (source code + api-spec.json)
+        │
+        ▼
+[Step 0] Codebase Analyst → probes env, detects NestJS/FastAPI/ASP.NET via framework hints
+         │                    inference from package.json / pyproject.toml / *.csproj
+         │
+         ▼
+[Step 1] Codebase Analyst → parses source code and/or api-spec.json,
+         │                    populates Registry.md with every endpoint, class, schema, enum
+         │
+         ▼
+[Step 2] Registry Validator → three-level gate (Structural S-001–S-006, Type T-001–T-005,
+         │                     Semantic P-001–P-004) before any code generation
+         │
+         ▼
+[Step 3] Builder Agent → generates sdk/typescript/, sdk/python/, sdk/csharp/
+         │                (+ Go/Java/Kotlin if tier2Languages configured)
+         │
+         ├─ SDK Builder Skill: package.json, tsconfig.json, client.ts, models/*.ts,
+         │                      types/*.ts, errors/*.ts, pyproject.toml, *.csproj, etc.
+         │
+         └─ SDK Consumer Skill: examples/basic-usage.ts, boilerplate/retry-wrapper.ts,
+                                  DI wiring (NestJS MyServiceModule, FastAPI Depends, IServiceCollection)
+         │
+         ▼
+[Step 4] Self-Embedding → injects ADIK context into .github/copilot-instructions.md,
+                           CLAUDE.md, agents.md (same files Spec Kit's AI agents already read)
+         │
+         ▼
+[Step 5] MCP Server → exposes adik_build_sdk, adik_analyse_codebase, adik_get_registry,
+                        adik_scaffold_boilerplate, adik_vector_search to any connected agent
+```
+
+The same AI assistant that drove Spec Kit's `/speckit.implement` step (Claude Code, GitHub Copilot,
+Gemini CLI) now has ADIK's Registry and SDK context available through the same embedded context files.
+No configuration change is needed on the AI side.
+
+### 4.4 The Self-Embedding Convergence
+
+ADIK's `scripts/adik-embed.py` writes to `.github/copilot-instructions.md`, `CLAUDE.md`, and
+`agents.md`. Spec Kit's `specify init` also writes to `.github/copilot-instructions.md` (for Copilot)
+and `CLAUDE.md` (via `scripts/update-claude-md.sh`). Both frameworks write to the same context files
+using different sections. They can coexist as long as ADIK's guard markers (`<!-- ADIK:START/END -->`)
+do not conflict with Spec Kit's content, which they do not — Spec Kit does not use ADIK-format guard
+blocks. Both tools write their sections cleanly, and ADIK's embed script is idempotent by design.
+
+---
+
+## Part 5 — Full Compliance Assessment Against Spec Kit
+
+Spec Kit is a methodology and tooling standard, not a machine-readable protocol schema. The assessment
+below maps every ADIK component against the closest Spec Kit concept.
+
+### 5.1 Conceptual Alignment Table
+
+| Spec Kit Concept | ADIK Equivalent | Alignment Level | Notes |
+|---|---|---|---|
+| **Constitution** — project governing principles | `ADIK.md` Standard Contracts (§Standard Contracts) + `adik.config.json` defaults | ⚠️ Partial | ADIK's "constitution" is structural (what agents must do); Spec Kit's is semantic (what the *product* should be). They serve different audiences. |
+| **Spec** — requirements and user stories | No direct equivalent | — | ADIK operates post-specification. It does not author requirements. |
+| **Plan** → `api-spec.json` — API contract | `Registry.md` — language-agnostic symbol registry | ✅ Complementary | ADIK's Registry is a richer, more detailed form of an API contract — typed, versioned, partitionable. An OpenAPI → Registry bridge would unify them. |
+| **Tasks** — granular task list | `agents/builder.agent.md` Execution Protocol (10-step numbered list) | ✅ Aligned conceptually | Both frameworks structure work as ordered, gated, numbered steps. |
+| **Implement** — AI-driven code generation | `skills/sdk-builder.skill.md` + `skills/sdk-builder-tier2.skill.md` + `skills/sdk-consumer.skill.md` | ✅ Complementary — different output | Spec Kit generates application code; ADIK generates SDK packages and boilerplate from the application. |
+| **Analyze** — cross-artifact consistency | `skills/registry-validator.skill.md` (3-level validation: S, T, P rules) | ✅ Aligned | Both have a cross-artifact consistency gate. ADIK's is more formal (S-001–P-004 rules). |
+| **Constitution** — living document, version-controlled | `Registry.md` Changelog table + `adik.audit.log` NDJSON trail | ✅ Aligned | ADIK's audit trail is more machine-readable; Spec Kit's constitution is more human-narrative. |
+| **AI agent support** — 25+ agents | Self-embedding into `.github/copilot-instructions.md`, `CLAUDE.md`, `agents.md` | ✅ Aligned | ADIK achieves multi-agent awareness via self-embedding into the same context files Spec Kit uses. |
+| **Extension system** — `specify extension add` | Agent/skill architecture in `agents/` + `skills/` | ⚠️ Not interoperable | ADIK's extension model is internal (add an `.agent.md` / `.skill.md` file). It is not published to Spec Kit's community catalog. Becoming a Spec Kit extension would make ADIK discoverable there. |
+| **Preset system** — override templates | `adik.config.json` `partitionStrategy`, `sdkLanguages`, `startupMode` | ⚠️ Partial | ADIK has configuration-level customization but no Spec Kit-compatible preset format. |
+| **Branch-per-feature** (`001-feature-name`) | Project-wide Registry; no per-feature partitioning | ⚠️ Gap | ADIK's `Registry.<domain>.md` partitioning is namespace-based, not branch/feature-based. Aligning partition naming to Spec Kit's `001-feature-name` convention would close this gap. |
+| **`/speckit.*` slash commands** | MCP tools (`adik_build_sdk`, `adik_analyse_codebase`, etc.) | ⚠️ Different mechanism | ADIK uses MCP rather than slash commands. Publishing an ADIK extension to Spec Kit would add `/speckit.adik.*` slash commands alongside the MCP interface. |
+
+### 5.2 Gaps to Close for Structural Alignment
+
+Three concrete changes would make ADIK structurally aligned with Spec Kit's workflow:
+
+**Gap 1 — OpenAPI contract import path**
+
+`agents/codebase-analyst.agent.md` (§Symbol Discovery Strategy → OpenAPI / Swagger) already handles
+OpenAPI files. The gap is that it looks for them at the repo root, not at Spec Kit's path convention.
+Fix: add `.specify/specs/*/contracts/api-spec.json` to the scan pattern, or document it in
+`docs/getting-started/configuration.md` as an `includePatterns` entry.
+
+**Gap 2 — Feature-branch registry partitions**
+
+`adik.config.json` supports `partitionStrategy: "manual"` with explicit `partitionMappings`. This can
+be configured to match Spec Kit's feature naming (`001-create-taskify` → Registry partition
+`Registry.create-taskify.md`). This is configuration, not a code change. Document it as a
+"Spec Kit integration mode" in `docs/ecosystem/`.
+
+**Gap 3 — Spec traceability field in Registry symbols**
+
+The `Registry.md` symbol entry schema (`docs/specification/standard.md` §5.4) includes a `tags`
+field. A `specRef` convention (`tags: ["spec:001-create-taskify"]`) would provide a lightweight
+traceability link back to Spec Kit's feature directory without requiring a schema change.
+
+### 5.3 ADIK Standard vs. Spec Kit Standard — Direct Spec Comparison
+
+| Dimension | ADIK `docs/specification/standard.md` | Spec Kit `spec-driven.md` + `github/spec-kit` README |
+|---|---|---|
+| **Format** | RFC-style with MUST/SHOULD/MAY conformance levels | Methodology document + CLI tool |
+| **Conformance levels** | 3 levels: Core, Extended, Full (§4) | No explicit levels; tool-centric |
+| **Type system** | Formal type mapping table §10.1 / §10.2 for 6 languages | No type system; spec is language-agnostic prose |
+| **Symbol schema** | 12-field YAML schema with required/recommended fields (§5.4) | No symbol schema; artifacts are free-form Markdown |
+| **Validation gate** | Mandatory 3-level gate before generation (§7.2 + registry-validator.skill.md) | No formal validation gate; `/speckit.analyze` is optional |
+| **Versioning** | Semantic versioning with bump rules (§12): patch/minor/major | Semantic versioning of the `specify-cli` tool only |
+| **Audit trail** | Append-only NDJSON `adik.audit.log` per build | No built-in audit trail |
+| **Bundle specification** | Explicit required/optional/excluded file lists (§9) | No formal bundle spec |
+| **Guard markers** | Formally specified: `<!-- ADIK:<SECTION>:START/END -->` (§8) | Not formally specified |
+| **Configuration schema** | Full `adik.config.json` schema with all fields and defaults (§11) | `.specify/templates/` directory convention |
+| **Extension contract** | Agent protocol (§6) and Skill protocol (§7) with required frontmatter | `extension.yml` manifest + template directory structure |
+| **Multi-language output** | 6 languages with canonical type mappings | No code generation — produces spec artifacts only |
+| **Machine-readability** | Registry is YAML-within-Markdown, parseable by agents | Spec artifacts are human-readable Markdown |
+
+---
+
+## Part 6 — Is ADIK a Competitor? No — With Strategic Nuance
+
+### 6.1 Why Not a Competitor
+
+ADIK and Spec Kit address categorically different problems:
+
+- Spec Kit answers: *"How do we go from an idea to working application code?"*
+- ADIK answers: *"How do consumers of that application call it from 6 programming languages
+  without maintaining SDKs by hand?"*
+
+There is zero feature overlap between Spec Kit's core workflow (constitution → spec → plan → tasks
+→ implement) and ADIK's core pipeline (analyse → registry → validate → generate → embed).
+
+### 6.2 Where the Ecosystem Risk Is Real
+
+The Spec Kit community extension catalog already contains extensions for:
+- `spec-kit-docguard` — canonical-driven development enforcement with documentation validation
+- `spec-kit-v-model` — V-Model paired test spec generation
+- `spec-kit-review` — post-implementation code review with specialized agents
+- `understanding` — requirements quality analysis against IEEE/ISO standards
+
+These are adjacent to ADIK's concerns. None yet covers **SDK generation** or **multi-language API
+client generation**. That slot is open. If a community contributor publishes a basic "generate an SDK
+from this spec" extension before ADIK does, it could occupy the mindshare position that ADIK should own.
+
+### 6.3 The Philosophical Convergence
+
+Both frameworks share a "spec-as-source-of-truth" philosophy, but apply it at different artifact levels:
+
+| Framework | Source of Truth | Truth About What | Output |
+|---|---|---|---|
+| Spec Kit | `spec.md` — natural language requirements | *Product intent* | Application code |
+| ADIK | `Registry.md` — typed symbol catalog | *API contract* | SDK packages |
+
+These are not competing philosophies — they are adjacent layers of the same principle. A Spec Kit
+spec becomes ADIK's source code, which becomes ADIK's Registry, which becomes ADIK's SDKs. The chain
+is: **spec → code → registry → SDK**.
+
+---
+
+## Part 7 — Offering ADIK as a Spec Kit Extension
+
+### 7.1 Why This Is Strategically Important
+
+Publishing ADIK as a Spec Kit extension achieves three things simultaneously:
+1. Places ADIK in the active extension catalog where Spec Kit users discover tools
+2. Creates a formal integration contract between the two frameworks
+3. Establishes ADIK as *the* SDK generation layer in the SDD ecosystem before the slot is filled
+
+### 7.2 What a Spec Kit Extension Requires
+
+Based on the Spec Kit extension development guide and `extension.yml` manifest spec:
 
 ```
 spec-kit-adik/
-├── extension.yml              ← Extension manifest (required)
-├── README.md                  ← Installation and usage guide (required)
-├── LICENSE                    ← Apache 2.0 (required)
+├── extension.yml                    ← Required: manifest (id, version, name, description, author, commands, templates)
+├── README.md                        ← Required: installation, usage, prerequisites
+├── LICENSE                          ← Required: Apache 2.0
 ├── templates/
-│   ├── speckit.adik.registry.md    ← Slash command: build Registry from spec artifacts
-│   ├── speckit.adik.sdk.md         ← Slash command: generate SDKs from Registry
-│   └── speckit.adik.status.md      ← Slash command: report SDK sync status
+│   ├── speckit.adik.registry.md     ← Template for /speckit.adik.registry command
+│   ├── speckit.adik.sdk.md          ← Template for /speckit.adik.sdk command
+│   ├── speckit.adik.boilerplate.md  ← Template for /speckit.adik.boilerplate command
+│   └── speckit.adik.status.md       ← Template for /speckit.adik.status command
 └── commands/
-    ├── claude/                ← Claude Code command files
-    ├── copilot/               ← Copilot command files
-    └── generic/               ← Generic agent command files
+    ├── claude/                      ← .claude/commands/ files for Claude Code
+    ├── copilot/                     ← .github/ files for GitHub Copilot
+    ├── gemini/                      ← .gemini/ files for Gemini CLI
+    └── generic/                     ← For any other supported agent
 ```
 
-### Proposed Commands
+### 7.3 Proposed Extension Commands
 
-| Command | Description |
-|---|---|
-| `/speckit.adik.registry` | Analyse the current feature branch's contracts and source code, bootstrap or update `Registry.md` |
-| `/speckit.adik.sdk` | Generate SDK packages from the current Registry; output to `sdk/` |
-| `/speckit.adik.boilerplate` | Generate framework-idiomatic integration boilerplate for the generated SDK |
-| `/speckit.adik.status` | Report SDK sync status — which symbols are out of date, which languages are generated |
+| Command | Invocation | What It Does | ADIK Component Triggered |
+|---|---|---|---|
+| `/speckit.adik.registry` | After `/speckit.implement` | Scans source code + reads `.specify/specs/*/contracts/api-spec.json`; populates `Registry.md` | `agents/codebase-analyst.agent.md` |
+| `/speckit.adik.sdk` | After `/speckit.adik.registry` | Validates Registry and generates SDK packages for configured languages | `agents/builder.agent.md` + `skills/sdk-builder.skill.md` |
+| `/speckit.adik.boilerplate` | After `/speckit.adik.sdk` | Generates framework-idiomatic integration boilerplate (DI wiring, retry wrappers, examples) | `skills/sdk-consumer.skill.md` |
+| `/speckit.adik.status` | Any time | Reports Registry freshness, SDK sync status, which symbols need regeneration | `adik_get_build_report` MCP tool |
 
-### Integration Point in the SDD Workflow
+### 7.4 Integration in the Full SDD + ADIK Workflow
 
 ```
-Constitution → Specify → Clarify → Plan → Tasks → Implement
-                                                        │
-                                                        ▼
-                                          /speckit.adik.registry  ← build Registry from contracts
-                                                        │
-                                                        ▼
-                                          /speckit.adik.sdk       ← generate multi-language SDKs
-                                                        │
-                                                        ▼
-                                          /speckit.adik.boilerplate ← scaffold integration examples
+[Spec Kit core pipeline]                   [ADIK extension — post-implement phase]
+─────────────────────                      ────────────────────────────────────────
+/speckit.constitution
+/speckit.specify
+/speckit.clarify
+/speckit.plan          → contracts/api-spec.json
+/speckit.tasks
+/speckit.implement     → source code
+                               │
+                               ▼
+                       /speckit.adik.registry   → Registry.md populated from source + api-spec.json
+                               │
+                               ▼
+                       /speckit.adik.sdk         → sdk/typescript/, sdk/python/, sdk/csharp/ written
+                               │
+                               ▼
+                       /speckit.adik.boilerplate → DI wiring, retry wrappers, usage examples
+                               │
+                               ▼
+                       /speckit.adik.status      → sync report; re-run on next feature iteration
 ```
 
-The ADIK extension would slot naturally after `/speckit.implement` as a post-implementation SDK
-generation phase, or alongside it as a parallel SDK-first development track.
+### 7.5 What the Extension `extension.yml` Manifest Looks Like
 
-### Publishing to the Spec Kit Community Catalog
+```yaml
+id: adik-sdk-generator
+version: 1.0.0
+name: ADIK SDK Generator
+description: >
+  Generates multi-language, self-maintaining SDK packages from your Spec Kit
+  implementation using the ADIK (Agentic Development and Implementation Kit) framework.
+  After /speckit.implement, run /speckit.adik.registry → /speckit.adik.sdk →
+  /speckit.adik.boilerplate to produce publish-ready TypeScript, Python, and C# SDKs.
+author: mateors1
+license: Apache-2.0
+homepage: https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework
+category: code
+effect: Read+Write
+prerequisites:
+  - name: ADIK deployed in repository
+    check: ADIK.orchestrator.md exists
+    required: true
+  - name: Python 3.11+
+    check: python3 --version
+    required: true
+commands:
+  - speckit.adik.registry
+  - speckit.adik.sdk
+  - speckit.adik.boilerplate
+  - speckit.adik.status
+```
 
-The Spec Kit community catalog (`extensions/catalog.community.json`) accepts submissions via Pull
-Request to `github/spec-kit`. The submission process:
+### 7.6 Three-Milestone Delivery Plan
 
-1. Build and test the extension against a real Spec Kit project
-2. Create a GitHub release with semantic versioning (e.g., `v1.0.0`)
-3. Submit a PR to `github/spec-kit` adding the entry to `catalog.community.json` and updating
-   `extensions/README.md`
-4. After merge, the extension becomes discoverable via `specify extension search`
-
-The extension category would be: `code`, effect: `Read+Write` — it reads spec artifacts and generates
-SDK files.
-
----
-
-## Proposing an Extension: What to Build
-
-To submit a meaningful, high-quality ADIK extension to the Spec Kit catalog, the following artifacts
-are needed. This is a concrete roadmap:
-
-### Milestone 1 — Minimum Viable Extension (MVP)
+**Milestone 1 — Minimum Viable Extension**
 
 | Deliverable | Description |
 |---|---|
-| `extension.yml` | Manifest declaring extension ID, version, author, commands, and templates |
-| `/speckit.adik.registry` template | Command that invokes ADIK's Codebase Analyst agent, using any `contracts/api-spec.json` found in the current feature directory as seed input |
-| `/speckit.adik.sdk` template | Command that invokes ADIK's Builder agent to generate TypeScript + Python SDKs from `Registry.md` |
-| README | Installation guide, workflow diagrams, prerequisites (Python 3.11+, ADIK deployed in repo) |
-| Integration test | One end-to-end test using Spec Kit's Taskify demo project |
+| `extension.yml` | Manifest with ID, version, author, commands list |
+| `/speckit.adik.registry` template | Invoke Codebase Analyst; point it at source + `.specify/specs/*/contracts/api-spec.json` |
+| `/speckit.adik.sdk` template | Invoke Builder Agent for TypeScript + Python; report output |
+| `README.md` | Prerequisites (ADIK deployed), installation, quick start |
+| Integration test | End-to-end test using Spec Kit's Taskify demo project |
 
-### Milestone 2 — Full Integration
-
-| Deliverable | Description |
-|---|---|
-| OpenAPI → Registry bridge | ADIK Codebase Analyst reads `contracts/api-spec.json` as a first-class input |
-| Per-feature registry partitions | ADIK supports `Registry.<feature>.md` aligned with Spec Kit's `001-feature-name` structure |
-| Spec traceability fields | `specRef` optional field in Registry symbols linking to `specs/001-xxx/spec.md` |
-| `/speckit.adik.status` template | Diff Registry against generated SDKs; report which symbols require regeneration |
-| `/speckit.adik.boilerplate` template | Generate framework-idiomatic boilerplate post-SDK-generation |
-
-### Milestone 3 — Community Catalog Submission
+**Milestone 2 — Full Integration**
 
 | Deliverable | Description |
 |---|---|
-| Published GitHub release | `spec-kit-adik` v1.0.0 release with zip artifact |
-| PR to `github/spec-kit` | Add entry to `extensions/catalog.community.json` and `extensions/README.md` |
-| Community walkthrough | A community walkthrough demo (similar to Spec Kit's existing walkthroughs) showing the full Spec Kit + ADIK workflow end-to-end |
+| `includePatterns` Spec Kit path support | Document and test `.specify/specs/*/contracts/api-spec.json` as an `includePatterns` entry |
+| Per-feature Registry partitions | Configuration guide for `partitionStrategy: "manual"` aligned to Spec Kit's `001-feature-name` branch names |
+| `/speckit.adik.boilerplate` template | NestJS / FastAPI / ASP.NET DI wiring + retry wrappers |
+| `/speckit.adik.status` template | Diff Registry against last build; show stale symbols |
+| `specRef` tagging convention | Document use of `tags: ["spec:001-feature"]` in Registry symbols for traceability |
+
+**Milestone 3 — Community Catalog Submission**
+
+| Deliverable | Description |
+|---|---|
+| Published GitHub release | `spec-kit-adik` v1.0.0 with zip artifact |
+| PR to `github/spec-kit` | Add entry to `extensions/catalog.community.json`; update `extensions/README.md` |
+| Community walkthrough | A Spec Kit-style walkthrough repo (like `mnriem/spec-kit-dotnet-cli-demo`) demonstrating the full Spec Kit + ADIK end-to-end flow |
+| Community walkthrough PR | Submit walkthrough to Spec Kit's community walkthroughs section in the main README |
 
 ---
 
-## Unique Benefits ADIK Offers That Spec Kit Does Not
+## Part 8 — What ADIK Uniquely Offers That Spec Kit Does Not
 
-| Capability | Spec Kit | ADIK |
-|---|---|---|
-| **Multi-language SDK generation** | ❌ No | ✅ TypeScript, Python, C#, Go, Java, Kotlin |
-| **Symbol registry** | ❌ No dedicated registry | ✅ `Registry.md` — structured, versioned, machine-readable |
-| **Self-maintaining SDKs via CI** | ❌ Manual re-run required | ✅ CI pipeline regenerates on every commit |
-| **Framework-idiomatic boilerplate** | ❌ Left to developer | ✅ NestJS, FastAPI, ASP.NET DI wiring, retry wrappers |
-| **AI self-embedding** | ❌ Not produced | ✅ Embeds SDK context into Copilot/Claude/Cursor automatically |
-| **MCP Server** | ❌ No | ✅ Full pipeline exposed as MCP tools |
-| **Existing codebase analysis** | ✅ Brownfield support exists | ✅ Codebase Analyst reads any existing source code |
-| **Registry validation gate** | ❌ No | ✅ `skills/registry-validator.skill.md` — mandatory pre-generation |
-| **Append-only audit trail** | ❌ No | ✅ `adik.audit.log` NDJSON build trail |
-| **Clean eject** | ❌ Manual removal | ✅ `scripts/adik-eject.py` — one command, zero residue |
-| **Spec + plan workflow** | ✅ Core capability | ❌ Not in scope |
-| **Multi-agent AI support (20+)** | ✅ Core capability | ✅ Via self-embedding |
-| **Extension/preset system** | ✅ Core capability | ✅ Agent/skill architecture |
+### 8.1 Capability Comparison Table
 
----
+| Capability | Spec Kit | ADIK | ADIK Component |
+|---|---|---|---|
+| **Multi-language SDK code generation** | ❌ Not in scope | ✅ TS, Python, C#, Go, Java, Kotlin | `skills/sdk-builder.skill.md` + `skills/sdk-builder-tier2.skill.md` |
+| **Language-agnostic symbol registry** | ❌ `api-spec.json` is per-feature, JSON only | ✅ `Registry.md` — YAML-in-Markdown, typed, partitionable, versioned | `Registry.md`, `Registry.index.md` |
+| **Self-maintaining CI pipeline** | ❌ Manual re-run required | ✅ `syncOnCommit: true` → every commit triggers re-analysis + regeneration | `ADIK.orchestrator.md` headless mode |
+| **Framework-idiomatic boilerplate** | ❌ Left to the developer | ✅ NestJS DI module, FastAPI `Depends`, ASP.NET `IServiceCollection`, React hook, Angular module | `skills/sdk-consumer.skill.md` |
+| **Deterministic self-embedding** | Spec Kit writes commands at install time | ✅ `adik-embed.py` writes/updates context files with idempotent guard markers | `scripts/adik-embed.py` |
+| **Registry validation gate** | `/speckit.analyze` is optional consistency check | ✅ Mandatory 3-level gate (14 validation rules S-001–P-004); `FAIL` aborts generation | `skills/registry-validator.skill.md` |
+| **Append-only audit trail** | ❌ None | ✅ `adik.audit.log` NDJSON — one structured record per build (compliance, debugging, drift detection) | `agents/builder.agent.md` §Audit Log |
+| **MCP server** | ❌ No MCP interface | ✅ 8 tools, 5 resources, 2 prompt templates via stdio or HTTP+SSE | `mcp/adik-mcp-server.md` |
+| **Vector/RAG semantic search** | ❌ Not in scope | ✅ `adik_vector_search` tool; 3 chunking strategies (symbol / file / sliding-window) | `skills/vectorize.skill.md` |
+| **Formal conformance levels** | ❌ No conformance levels | ✅ Core (L1), Extended (L2), Full (L3) with MUST/SHOULD/MAY compliance checklist | `docs/specification/standard.md` §4 |
+| **Post-generation type-checking** | ❌ None | ✅ tsc, mypy, dotnet build after generation (advisory or strict via `ADIK_STRICT_TYPECHECK`) | `agents/builder.agent.md` §Post-generation |
+| **Clean eject** | Manual file deletion | ✅ `adik-eject.py` — removes all ADIK artifacts, respects guard markers, preserves source | `scripts/adik-eject.py` |
+| **Incremental build** | ❌ Full regeneration on every run | ✅ Diff-and-update mode; only re-generates symbols that changed since last analysed commit | `agents/builder.agent.md` §Incremental Build |
+| **Application code generation** | ✅ Full application from spec | ❌ Not in scope | — |
+| **Requirements management** | ✅ spec.md with user stories, acceptance criteria | ❌ Not in scope | — |
+| **Multi-agent support (25+)** | ✅ Native slash-command install for 25+ agents | ✅ Via self-embedding into shared context files | Both |
 
-## Recommended Next Steps
+### 8.2 The Unique Architectural Advantage: Incremental, Self-Maintaining SDKs
 
-### Immediate Actions
+The feature Spec Kit cannot replicate is ADIK's **self-maintaining** character: the adik bundle
+carries its own agents, so every commit to the source code triggers automatic re-analysis, re-validation,
+and re-generation. This is not a UI feature — it is the fundamental architecture of an adik
+(an **adik** carries its own maintenance pipeline; a Spec Kit project does not).
 
-1. **Read the Spec Kit extension development guide** — [`github/spec-kit/extensions/EXTENSION-DEVELOPMENT-GUIDE.md`](https://github.com/github/spec-kit/blob/main/extensions/EXTENSION-DEVELOPMENT-GUIDE.md)
-   to understand exact manifest format and command template requirements.
+This means:
 
-2. **Open a GitHub Discussion in `github/spec-kit`** — signal intent to build an ADIK extension.
-   Community visibility early prevents duplication and invites collaboration. The Spec Kit maintainers
-   are active and welcoming to contributors.
-
-3. **Map the OpenAPI → Registry bridge** — identify the minimal ADIK Codebase Analyst changes needed
-   to accept `contracts/api-spec.json` as seed input for `Registry.md`. This is the critical technical
-   integration point.
-
-### Medium-Term Investigations
-
-4. **Evaluate SDD for ADIK's own development** — ADIK could adopt Spec Kit for its own feature
-   development. This would produce a `specs/` directory in the ADIK repository, making every
-   framework change traceable to a formal specification. ADIK would then use itself (adik) to generate
-   its own MCP server and agent SDKs. The two frameworks feeding each other is a compelling narrative.
-
-5. **Explore a shared contract format** — Investigate whether ADIK's `Registry.md` format and Spec
-   Kit's `contracts/api-spec.json` (OpenAPI) could share a common representation, or define a
-   well-specified transformation between them. A formal ADIK <-> OpenAPI bridge would make ADIK
-   compatible with any OpenAPI-aware toolchain, not just Spec Kit.
-
-6. **Contribute to SDD community documentation** — Write a community walkthrough for the Spec Kit
-   repository demonstrating the Spec Kit → ADIK workflow. The existing walkthroughs cover .NET,
-   Spring Boot, Go, and ASP.NET — an ADIK integration walkthrough would be novel and add genuine
-   value to both communities.
-
-7. **Consider a `speckit.adik` preset** — beyond the extension, a preset could reshape Spec Kit's
-   spec and plan templates to produce outputs that are maximally compatible with ADIK's Registry
-   format — embedding type names, endpoint signatures, and schema structures in a way that the
-   Codebase Analyst can more reliably parse.
-
-### Strategic Positioning
-
-8. **Stake a position in the SDD ecosystem early** — The Spec Kit extension catalog is growing
-   rapidly (20+ extensions submitted in its first months). SDK generation is currently absent from
-   the catalog. Publishing ADIK as the canonical SDK generation extension for Spec Kit establishes
-   a durable position in the emerging SDD tooling ecosystem.
-
-9. **Monitor Spec Kit's governance model** — Spec Kit is currently MIT-licensed and backed by GitHub.
-   As it matures, understanding its governance, standardization path, and relationship with
-   organizations like Anthropic will be important for long-term alignment decisions.
+- Spec Kit + ADIK together provide the full lifecycle: *intent → spec → implementation → SDK →
+  maintained SDK*
+- Without ADIK, Spec Kit's output (the implemented application) requires ongoing manual SDK maintenance
+- Without Spec Kit, ADIK works on any existing codebase — but lacks the structured specification
+  and planning phase
 
 ---
 
-## Further Reading
+## Part 9 — Recommended Next Steps
+
+### Immediate (this sprint)
+
+1. **Open a GitHub Discussion in `github/spec-kit`** to signal intent before building. This prevents
+   duplication, invites early collaboration, and is good community etiquette given how active the
+   Spec Kit maintainers are.
+
+2. **Test the existing integration** with zero code changes: deploy ADIK into a Spec Kit project
+   (e.g., the Taskify demo), add `.specify/specs/*/contracts/api-spec.json` to `includePatterns` in
+   `adik.config.json`, and run the ADIK pipeline. Document whether the Registry populates correctly
+   from the api-spec.json. This validates the integration claim and produces concrete evidence.
+
+### Short-Term (v1.1.0 scope — already on ADIK's roadmap)
+
+3. **OpenAPI 3.1 bidirectional sync** is already on `ROADMAP.md` (v1.2.0). Consider pulling it
+   forward to v1.1.0 given the strategic importance of Spec Kit alignment. This one feature makes
+   ADIK compatible with any OpenAPI-aware toolchain, not just Spec Kit.
+
+4. **Document a "Spec Kit integration mode"** in `docs/ecosystem/` (this file) with a concrete
+   `adik.config.json` snippet showing how to point ADIK at Spec Kit's contract artifacts.
+
+### Medium-Term (extension MVP)
+
+5. **Build `spec-kit-adik` extension** following the Spec Kit Extension Development Guide. The MVP
+   needs only two working commands (`/speckit.adik.registry` and `/speckit.adik.sdk`) and a `README.md`.
+
+6. **Adopt Spec Kit for ADIK's own development.** Use `/speckit.*` commands to drive ADIK's own
+   feature development. This produces a `specs/` directory in the ADIK repository, making every
+   framework change traceable to a formal specification. ADIK would then use itself (deploy an adik)
+   to generate its own MCP server SDK and agent SDKs. The two frameworks feeding each other is a
+   powerful and honest demonstration of value.
+
+### Strategic Investigations
+
+7. **Monitor the extension catalog for SDK generation entries.** The catalog is growing rapidly
+   (~20 extensions in the first months). SDK generation is currently absent. The window to publish
+   first is open but not indefinitely.
+
+8. **Consider a `speckit.adik` preset** that reshapes Spec Kit's plan and task templates to embed
+   ADIK-compatible type annotations directly in `spec.md` — making the Codebase Analyst Agent's
+   job easier by pre-structuring what will become Registry entries.
+
+9. **Explore formal SDD + ADIK methodology documentation** — a joint white paper or blog post
+   (GitHub Blog, LogRocket, Microsoft Dev Blog) explaining how SDD + ADIK form a complete spec-to-SDK
+   pipeline. All three surfaces already cover Spec Kit extensively; an ADIK integration story would
+   be novel content with a receptive audience.
+
+---
+
+## Part 10 — Further Reading
 
 | Resource | Link |
 |---|---|
@@ -379,6 +563,12 @@ are needed. This is a concrete roadmap:
 | Spec-Driven Development methodology | [spec-driven.md](https://github.com/github/spec-kit/blob/main/spec-driven.md) |
 | Spec Kit extension development guide | [extensions/EXTENSION-DEVELOPMENT-GUIDE.md](https://github.com/github/spec-kit/blob/main/extensions/EXTENSION-DEVELOPMENT-GUIDE.md) |
 | Spec Kit community extension catalog | [extensions/catalog.community.json](https://github.com/github/spec-kit/blob/main/extensions/catalog.community.json) |
-| ADIK Manifesto | [docs/specification/manifesto.md](../specification/manifesto.md) |
-| ADIK Standard | [docs/specification/standard.md](../specification/standard.md) |
+| ADIK Standard Specification | [docs/specification/standard.md](../specification/standard.md) |
 | ADIK Architecture | [docs/specification/architecture.md](../specification/architecture.md) |
+| ADIK Manifesto | [docs/specification/manifesto.md](../specification/manifesto.md) |
+| ADIK Roadmap | [ROADMAP.md](../../ROADMAP.md) |
+| ADIK Configuration Reference | [docs/getting-started/configuration.md](../getting-started/configuration.md) |
+| Builder Agent spec | [agents/builder.agent.md](../../agents/builder.agent.md) |
+| Codebase Analyst spec | [agents/codebase-analyst.agent.md](../../agents/codebase-analyst.agent.md) |
+| Registry Validator spec | [skills/registry-validator.skill.md](../../skills/registry-validator.skill.md) |
+| MCP Server spec | [mcp/adik-mcp-server.md](../../mcp/adik-mcp-server.md) |
