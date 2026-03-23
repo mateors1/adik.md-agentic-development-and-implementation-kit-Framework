@@ -208,6 +208,7 @@ Source code is never touched. Only ADIK artifacts are removed.
 | **[Red-Team Audit v2](docs/security/red-team-audit-v2.md)** | Security audit and risk matrix |
 | **[Roadmap](ROADMAP.md)** | Planned features and version timeline |
 | **[Changelog](CHANGELOG.md)** | Version history |
+| **[GitHub Spec Kit: Analysis & Integration](docs/ecosystem/spec-kit.md)** | How ADIK complements GitHub Spec Kit — positioning, compliance, extension proposal |
 
 ### Building the docs locally
 
