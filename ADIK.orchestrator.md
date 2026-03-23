@@ -345,7 +345,7 @@ ADIK.orchestrator.md
   │         files: .github/copilot-instructions.md, CLAUDE.md, agents.md
   │
   └─► [5] MCP Server                  → exposes ADIK capabilities to external agents
-            (mcp/adik-mcp-server.md)
+            (mcp/adik_mcp_server.py — run: python mcp/adik_mcp_server.py)
 ```
 
 ### Step 0 — Environment Probe, Framework Inference, and Dev-State Check

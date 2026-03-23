@@ -5,3 +5,10 @@ site/
 __pycache__/
 *.py[cod]
 *.pyo
+*.bak
+
+# Build / packaging
+dist/
+build/
+*.egg-info/
+*.egg

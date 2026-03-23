@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adik-mcp-server"
+version = "1.0.0"
+description = "MCP server for the ADIK framework — registry queries, SDK generation, and codebase analysis tools for any MCP-compatible AI agent"
+readme = "README.pypi.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [{ name = "Mateo RS" }]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "sdk",
+    "ai",
+    "agents",
+    "code-generation",
+    "agentic",
+    "adik",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "mcp>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework"
+Repository = "https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework"
+Issues = "https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/issues"
+
+[project.scripts]
+adik-mcp-server = "adik_mcp_server:main"
+
+# ---------------------------------------------------------------------------
+# Setuptools: package the single module from mcp/ directory
+# ---------------------------------------------------------------------------
+
+[tool.setuptools]
+py-modules = ["adik_mcp_server"]
+
+[tool.setuptools.package-dir]
+"" = "mcp"

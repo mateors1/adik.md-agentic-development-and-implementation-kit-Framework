@@ -9,14 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+*Nothing yet.*
 
+## [1.0.0] — 2026-03-16
+
+> First public release of the ADIK standard. All internal iterations have been compressed
+> into this single v1.0.0 release.
+
+### Added (post-initial tag)
+
+- **`mcp/adik_mcp_server.py`** — MCP server Python implementation. 12 tools (8 deterministic,
+  3 LLM-dependent, 1 conditional) and 4 resources. Supports stdio and streamable-HTTP transports.
 - **`scripts/adik-deploy.py`** — factory-side bundle assembly and deployment script (source repo only — not deployed as part of the adik).
 - **`docs/quickstart-guide.md`** — step-by-step deployment guide for new users and evaluators.
 - **`docs/configuration.md`** — full `adik.config.json` schema and field reference (extracted from orchestrator).
 - **GitHub Sponsors** enabled — `❤️ Sponsor` button active on the repository.
 
-### Changed
+### Changed (post-initial tag)
 
 - **`ADIK.md` split into standard + orchestrator** — `ADIK.md` is now the standard definition
   only (terminology, contracts, principles). The operational orchestrator template that ships
@@ -25,11 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`ADIK.orchestrator.md` trimmed by 29%** (6.4K → 4.5K tokens) — configuration schema moved to
   `docs/configuration.md`, file layout condensed to key-paths table, eject section compressed,
   related files replaced with pointers. Reduces LLM context burden during pipeline execution.
-
-## [1.0.0] — 2026-03-16
-
-> First public release of the ADIK standard. All internal iterations have been compressed
-> into this single v1.0.0 release.
 
 ### Core Framework
 
@@ -71,7 +75,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Infrastructure
 
-- **`mcp/adik-mcp-server.md`** — MCP server exposing ADIK capabilities to any MCP-compatible client.
+- **`mcp/adik-mcp-server.md`** — MCP server specification defining ADIK tool schemas and transport config.
+- **`mcp/adik_mcp_server.py`** — MCP server Python implementation. 12 tools (8 deterministic,
+  3 LLM-dependent, 1 conditional) and 4 resources. Supports stdio and streamable-HTTP
+  transports. Run with `python mcp/adik_mcp_server.py` or install via `pip install adik-mcp-server`.
 - **`.github/workflows/adik-self-deploy.yml`** — CI/CD self-deployment workflow. Uses fine-grained
   PAT with least-privilege scopes. Defaults to `private` repository visibility.
 - **`.github/workflows/adik-ci.yml`** — Optional integration testing workflow. Validates registry

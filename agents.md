@@ -136,18 +136,32 @@ workflows:
 
 ```yaml
 mcp:
-  - file: mcp/adik-mcp-server.md
+  - spec: mcp/adik-mcp-server.md
+    implementation: mcp/adik_mcp_server.py
     role: Exposes ADIK capabilities to external agentic environments
-    transport: [stdio, http+sse]
+    transport: [stdio, streamable-http]
     defaultPort: 3100
+    run:
+      stdio: python mcp/adik_mcp_server.py
+      http: python mcp/adik_mcp_server.py --transport http --port 3100
     tools:
-      - adik_get_registry
-      - adik_build_sdk
-      - adik_analyse_codebase
-      - adik_scaffold_boilerplate
-      - adik_get_symbol
-      - adik_get_build_report
-      - adik_vector_search  # available when vectorMode is active
+      - adik_get_registry       # deterministic
+      - adik_get_symbol         # deterministic
+      - adik_get_build_report   # deterministic
+      - adik_validate_registry  # deterministic
+      - adik_lint               # deterministic
+      - adik_embed              # deterministic
+      - adik_eject              # deterministic (dry-run default)
+      - adik_status             # deterministic
+      - adik_build_sdk          # LLM-dependent (returns instruction payload)
+      - adik_analyse_codebase   # LLM-dependent (returns instruction payload)
+      - adik_scaffold_boilerplate  # LLM-dependent (returns instruction payload)
+      - adik_vector_search      # conditional (requires active vectorMode)
+    resources:
+      - adik://registry
+      - adik://config
+      - adik://env
+      - adik://orchestrator
 ```
 
 ---

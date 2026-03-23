@@ -64,10 +64,13 @@ EXCLUDED_FILES = [
     "CHANGELOG.md",
     "ROADMAP.md",
     "README.md",
+    "README.pypi.md",
     "LICENSE",
     "adik-lint.py",
     "mkdocs.yml",
     "requirements-docs.txt",
+    "pyproject.toml",
+    "measure_bundle.py",
 ]
 
 EXCLUDED_DIRS = [
@@ -77,6 +80,8 @@ EXCLUDED_DIRS = [
     "__pycache__",
     "node_modules",
     "vectors",
+    "dist",
+    "build",
 ]
 
 # Files within bundle directories that should NOT be deployed
@@ -152,6 +157,7 @@ def validate_source(source: Path) -> Tuple[bool, List[str]]:
         "scripts/adik-embed.py",
         "scripts/adik-eject.py",
         "mcp/adik-mcp-server.md",
+        "mcp/adik_mcp_server.py",
     ]
     for f in key_files:
         if not (source / f).is_file():
@@ -247,6 +253,7 @@ def deploy_bundle(source: Path, target: Path, dry_run: bool = False,
                 dirs[:] = [
                     sub for sub in dirs
                     if sub not in ("__pycache__", ".git", "node_modules")
+                    and not sub.endswith(".egg-info")
                 ]
 
                 for fname in files:

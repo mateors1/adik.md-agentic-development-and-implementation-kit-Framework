@@ -43,7 +43,7 @@ This project uses **ADIK** for automated SDK generation and maintenance.
 - **Skills:** `skills/sdk-builder.skill.md`, `skills/sdk-consumer.skill.md`,
   `skills/vectorize.skill.md`, `skills/registry-validator.skill.md`
 - **Tier-2 Skills:** `skills/sdk-builder-tier2.skill.md` (Go / Java / Kotlin — opt-in)
-- **MCP server:** `mcp/adik-mcp-server.md`
+- **MCP server:** `mcp/adik_mcp_server.py` — run with `python mcp/adik_mcp_server.py` (stdio) or `--transport http --port 3100`
 - **Build output:** `sdk/` ({sdk_languages})
 
 **Key rules for Copilot:**
@@ -64,6 +64,7 @@ CLAUDE_BLOCK = """\
 **Orchestrator:** `ADIK.orchestrator.md`
 **Standard:** `ADIK.md`
 **Registry:** `{registry_path}`
+**MCP server:** `mcp/adik_mcp_server.py` — `python mcp/adik_mcp_server.py` (stdio) or `--transport http`
 **SDK output:** `sdk/` ({sdk_languages})
 **ADIK reach:** {adik_reach}
 
@@ -92,7 +93,8 @@ Loaded skills:
 - skills/sdk-builder-tier2.skill.md (loaded on demand when tier2Languages is configured)
 
 Registry: {registry_path}
-MCP server: mcp/adik-mcp-server.md
+MCP server: mcp/adik_mcp_server.py (run: python mcp/adik_mcp_server.py)
+MCP spec: mcp/adik-mcp-server.md
 Vector store: {vector_store}
 SDK output: sdk/ ({sdk_languages})
 <!-- ADIK:END -->
