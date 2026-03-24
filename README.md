@@ -208,7 +208,31 @@ Source code is never touched. Only ADIK artifacts are removed.
 | **[Red-Team Audit v2](docs/security/red-team-audit-v2.md)** | Security audit and risk matrix |
 | **[Roadmap](ROADMAP.md)** | Planned features and version timeline |
 | **[Changelog](CHANGELOG.md)** | Version history |
-| **[GitHub Spec Kit: Analysis & Integration](docs/ecosystem/spec-kit.md)** | How ADIK complements GitHub Spec Kit — positioning, compliance, extension proposal |
+
+---
+
+## Ecosystem & Integrations
+
+ADIK is designed to compose with larger workflows — it consumes what other tools produce and produces what other tools consume.
+
+### GitHub Spec Kit
+
+[**Spec Kit**](https://github.com/github/spec-kit) is GitHub's open-source Spec-Driven Development toolkit. It drives the lifecycle from *idea → spec → code*. ADIK picks up where Spec Kit finishes — turning that code into *registry → SDK → maintained SDK*.
+
+```
+Spec Kit: /speckit.constitution → /speckit.specify → /speckit.plan → /speckit.implement → source code
+                                                                                            │
+ADIK:                                                                                       ▼
+         /speckit.adik.registry → /speckit.adik.sdk → /speckit.adik.boilerplate → published SDKs
+```
+
+Together they form a complete **spec-to-SDK pipeline** — the first open-source workflow that goes from a natural-language product idea to publish-ready, self-maintaining SDK packages in 6 languages.
+
+- **[Full Analysis & Integration Guide](docs/ecosystem/spec-kit.md)** — deep technical comparison, compliance assessment, and extension architecture
+- **[Integration Guide: Using ADIK with Spec Kit](docs/ecosystem/integration-guide.md)** — step-by-step setup for Spec Kit projects
+- **[`spec-kit-adik` Extension](docs/ecosystem/spec-kit-adik/)** — installable Spec Kit extension that adds `/speckit.adik.*` commands
+
+---
 
 ### Building the docs locally
 

@@ -144,3 +144,20 @@ Each tier-2 language can be configured with language-specific options under `tie
   "syncOnCommit": true
 }
 ```
+
+**Spec Kit integration (scan `.specify/` contract artifacts):**
+```json
+{
+  "includePatterns": [
+    "src/**/*",
+    ".specify/specs/*/contracts/api-spec.json"
+  ],
+  "partitionStrategy": "manual",
+  "partitionMappings": {
+    "create-taskify": ".specify/specs/001-create-taskify/**/*",
+    "user-profiles": ".specify/specs/002-user-profiles/**/*"
+  }
+}
+```
+
+> **Tip:** When using [GitHub Spec Kit](https://github.com/github/spec-kit), point `includePatterns` at the `.specify/specs/*/contracts/` directory so the Codebase Analyst can read `api-spec.json` as a first-class OpenAPI source. Use `partitionStrategy: "manual"` with `partitionMappings` to align Registry partitions to Spec Kit's feature-branch naming convention (`001-feature-name`). See [ADIK & Spec Kit Integration Guide](../ecosystem/integration-guide.md) for the full workflow.

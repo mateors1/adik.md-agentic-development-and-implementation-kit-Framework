@@ -23,7 +23,7 @@ The developer writes code. ADIK writes the SDK.
 
 ---
 
-## Four Core Principles
+## Five Core Principles
 
 ### 1. One Source of Truth
 
@@ -54,6 +54,14 @@ Every feature is additive. Vector mode, MCP server, framework-specific boilerpla
 You do not need a vector database to benefit from ADIK. You do not need an MCP client. You do not even need a config file. Run the two agents and you have an SDK.
 
 > *The floor is low. The ceiling is high.*
+
+### 5. Composability
+
+ADIK is designed to be one layer in a larger pipeline, not the whole pipeline. It consumes what other tools produce and produces what other tools consume. Specification frameworks feed it code. CI/CD systems invoke it automatically. Package registries distribute its output.
+
+This is a deliberate architectural choice. ADIK does not manage requirements. It does not own the deployment pipeline. It does not prescribe how you write code. It occupies one layer — *contract → SDK* — and does it completely. Other tools own their layers, and ADIK integrates cleanly with any of them.
+
+> *A good tool does one thing well and composes with everything else.*
 
 ---
 

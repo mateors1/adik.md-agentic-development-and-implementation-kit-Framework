@@ -9,7 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*Nothing yet.*
+### Added
+
+- **Spec Kit integration documentation** — `docs/ecosystem/integration-guide.md` with step-by-step
+  workflow for using ADIK in GitHub Spec Kit projects.
+- **`spec-kit-adik` extension** — `docs/ecosystem/spec-kit-adik/` containing `extension.yml`,
+  4 slash command templates, agent command files, and README for the Spec Kit community catalog.
+- **Spec Kit contract path** in Codebase Analyst — `agents/codebase-analyst.agent.md` now documents
+  scanning `.specify/specs/*/contracts/api-spec.json` as a first-class OpenAPI source.
+- **Spec traceability convention** — `tags: ["spec:001-feature"]` pattern documented in
+  `docs/specification/standard.md` §5.4 for linking Registry symbols to Spec Kit feature specs.
+- **Spec Kit config example** in `docs/getting-started/configuration.md` showing `includePatterns`
+  and `partitionMappings` for `.specify/` directory integration.
+- **5th Manifesto principle: Composability** — ADIK is designed to be one layer in a larger pipeline,
+  not the whole pipeline (`docs/specification/manifesto.md`).
+- **Ecosystem & Integrations section** in `README.md` positioning Spec Kit as flagship integration.
+- **Spec Kit integration launch posts** in `docs/community/launch-posts.md`.
+
+### Changed
+
+- **ROADMAP v1.1.0** — added Spec Kit extension, OpenAPI 3.1 sync (moved from v1.2.0), Spec Kit
+  contract path support, and feature-branch registry partitions as tracked items.
 
 ## [1.0.0] — 2026-03-16
 

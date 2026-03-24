@@ -130,6 +130,8 @@ tags: [string]
 
 The fields `id`, `kind`, `name`, `namespace`, and `signature` are REQUIRED. All others are RECOMMENDED.
 
+> **Spec traceability convention:** When integrating with specification-driven workflows (e.g., [GitHub Spec Kit](https://github.com/github/spec-kit)), use the `tags` field with a `spec:` prefix to link symbols back to their originating feature specification — for example, `tags: ["spec:001-create-taskify"]`. This enables traceability from Registry symbols through to requirements without requiring a schema change.
+
 ### 5.5 Changelog Table
 
 ```markdown

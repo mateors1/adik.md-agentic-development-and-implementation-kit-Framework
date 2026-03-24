@@ -202,6 +202,7 @@ IF *.java files found AND (pom.xml OR build.gradle) present → "java"
 - If a spec file exists, parse it directly as the authoritative source for endpoint and schema definitions.
 - Map each path + method combination to a registry Endpoint entry.
 - Map each `components/schemas` entry to a registry Schema entry.
+- **Spec Kit integration:** also scan `.specify/specs/*/contracts/api-spec.json` when present. This path is used by [GitHub Spec Kit](https://github.com/github/spec-kit) to store per-feature API contracts generated during `/speckit.plan`. Treat these identically to root-level OpenAPI specs.
 
 ---
 

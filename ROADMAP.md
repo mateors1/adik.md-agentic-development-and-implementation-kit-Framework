@@ -34,10 +34,20 @@ The first public release of the ADIK standard, covering the complete agentic SDK
 
 ---
 
-## 🔜 v1.1.0 — Developer Experience
+## 🔜 v1.1.0 — Developer Experience + Spec Kit Integration
 
-Focused on making ADIK easier to adopt and reducing friction for first-time users.
+Focused on making ADIK easier to adopt, reducing friction for first-time users, and establishing
+ADIK as the SDK generation layer in the Spec-Driven Development ecosystem.
 
+- [ ] **`spec-kit-adik` extension** — publish ADIK as a Spec Kit community extension with
+  `/speckit.adik.registry`, `/speckit.adik.sdk`, `/speckit.adik.boilerplate`, and
+  `/speckit.adik.status` slash commands
+- [ ] **OpenAPI 3.1 bidirectional sync** — generate Registry from OpenAPI and OpenAPI from Registry;
+  bridges ADIK with any OpenAPI-aware toolchain (Spec Kit, Swagger, Postman, etc.)
+- [ ] **Spec Kit contract path support** — Codebase Analyst auto-scans
+  `.specify/specs/*/contracts/api-spec.json` when present
+- [ ] **Feature-branch registry partitions** — `partitionStrategy: "manual"` aligned to Spec Kit's
+  `001-feature-name` branch convention, with `specRef` tag traceability
 - [ ] **Interactive CLI installer** — `npx create-adik` or `pip install adik-cli` to scaffold
   ADIK into any project with guided prompts
 - [ ] **VS Code extension** — syntax highlighting for Registry.md, inline validation, one-click
@@ -61,7 +71,6 @@ Broadening ADIK's reach to more source languages and SDK targets.
 - [ ] **Tier-2 expansion: Dart/Flutter SDK output** — Dart package with JSON serialization
 - [ ] **Source analysis: Rust** — parse `pub` items from `.rs` files
 - [ ] **Source analysis: PHP** — parse public classes/functions from PHP projects
-- [ ] **OpenAPI 3.1 bidirectional sync** — generate Registry from OpenAPI and OpenAPI from Registry
 - [ ] **GraphQL schema support** — parse `.graphql` schemas and generate typed SDK clients
 
 ---

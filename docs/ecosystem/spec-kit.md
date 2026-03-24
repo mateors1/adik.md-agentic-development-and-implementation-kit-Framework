@@ -106,7 +106,7 @@ Before comparing, here is every ADIK component and what it does:
 | `scripts/adik-deploy.py` | Script | Factory-side bundle assembly and deployment (source repo only) |
 | `mcp/adik-mcp-server.md` | Infra | MCP server exposing 8 tools + 5 resources + 2 prompt templates |
 | `docs/specification/architecture.md` | Docs | Mermaid flow diagrams, agent-skill delegation model, data flow |
-| `docs/specification/manifesto.md` | Docs | 4 core principles: single source of truth, inference over configuration, context cleanliness, graceful degradation |
+| `docs/specification/manifesto.md` | Docs | 5 core principles: single source of truth, inference over configuration, context cleanliness, graceful degradation, composability |
 | `adik-lint.py` | Tooling | ADIK.md specification linter |
 | `ROADMAP.md` | Planning | Versioned feature roadmap (v1.0.0 through v2.0.0) |
 

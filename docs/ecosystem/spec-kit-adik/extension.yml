@@ -1,0 +1,41 @@
+id: adik-sdk-generator
+version: 1.0.0
+name: ADIK SDK Generator
+description: >
+  Generates multi-language, self-maintaining SDK packages from your Spec Kit
+  implementation using the ADIK (Agentic Development and Implementation Kit) framework.
+  After /speckit.implement, run /speckit.adik.registry → /speckit.adik.sdk →
+  /speckit.adik.boilerplate to produce publish-ready TypeScript, Python, C#, Go, Java,
+  and Kotlin SDKs — with framework-idiomatic integration code, validation, and audit trail.
+author: mateors1
+license: Apache-2.0
+homepage: https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework
+repository: https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework
+category: code
+effect: Read+Write
+keywords:
+  - sdk
+  - code-generation
+  - multi-language
+  - api-client
+  - typescript
+  - python
+  - csharp
+  - agentic
+
+prerequisites:
+  - name: ADIK deployed in repository
+    check: test -f ADIK.orchestrator.md
+    required: true
+  - name: Python 3.11+
+    check: python3 --version
+    required: true
+  - name: Source code or API spec exists
+    check: test -d src || find .specify/specs -name "api-spec.json" 2>/dev/null | head -1
+    required: true
+
+commands:
+  - speckit.adik.registry
+  - speckit.adik.sdk
+  - speckit.adik.boilerplate
+  - speckit.adik.status
