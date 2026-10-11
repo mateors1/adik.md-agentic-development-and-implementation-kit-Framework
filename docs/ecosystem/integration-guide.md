@@ -1,7 +1,7 @@
 # Using ADIK with GitHub Spec Kit — Integration Guide
 
-> **Part of:** [ADIK — Agentic Development and Implementation Kit](../../README.md)
-> **See also:** [Full Analysis & Comparison](spec-kit.md), [`spec-kit-adik` Extension](spec-kit-adik/)
+> **Part of:** [ADIK — Agentic Development and Implementation Kit](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/README.md)
+> **See also:** [Full Analysis & Comparison](spec-kit.md), [`spec-kit-adik` Extension](spec-kit-adik/README.md)
 
 This guide walks you through setting up ADIK in a [GitHub Spec Kit](https://github.com/github/spec-kit)
 project so that after `/speckit.implement` produces working code, ADIK automatically generates
@@ -198,7 +198,7 @@ guard blocks. Both write to `.github/copilot-instructions.md` and `CLAUDE.md` wi
 | Resource | Link |
 |---|---|
 | Full Spec Kit analysis | [docs/ecosystem/spec-kit.md](spec-kit.md) |
-| `spec-kit-adik` extension | [docs/ecosystem/spec-kit-adik/](spec-kit-adik/) |
+| `spec-kit-adik` extension | [docs/ecosystem/spec-kit-adik/](spec-kit-adik/README.md) |
 | ADIK Configuration Reference | [docs/getting-started/configuration.md](../getting-started/configuration.md) |
 | ADIK Quickstart Guide | [docs/getting-started/quickstart-guide.md](../getting-started/quickstart-guide.md) |
 | GitHub Spec Kit | [github.com/github/spec-kit](https://github.com/github/spec-kit) |

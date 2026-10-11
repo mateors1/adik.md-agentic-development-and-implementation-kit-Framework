@@ -1,333 +1,117 @@
 #!/usr/bin/env python3
-"""
-adik-embed.py — Deterministic ADIK Self-Embedding Script
-
-Manages the ADIK context blocks in:
-  - .github/copilot-instructions.md
-  - CLAUDE.md
-  - agents.md
-
-Uses <!-- ADIK:START --> / <!-- ADIK:END --> guard markers to ensure idempotent,
-non-duplicating writes. Safe to run multiple times and across different LLM models.
-
-Usage:
-    python3 scripts/adik-embed.py --action upsert --target <path-to-repo>
-    python3 scripts/adik-embed.py --action remove --target <path-to-repo>
-    python3 scripts/adik-embed.py --action check  --target <path-to-repo>
-"""
-
+"""Manage producer guidance. Completed consumer adiks use adik-bundle.py install."""
 import argparse
-import os
-import sys
+import json
 from pathlib import Path
-from typing import Optional
+import sys
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'mcp'))
+from adik_contracts import ContractError, relative_path, resolve_registry
 
-ADIK_START_MARKER = "<!-- ADIK:START -->"
-ADIK_END_MARKER = "<!-- ADIK:END -->"
-
-# Templates for each target file.  {vars} are filled at runtime.
-COPILOT_BLOCK = """\
-<!-- ADIK:START -->
-## ADIK — Agentic Development and Implementation Kit
-
-This project uses **ADIK** for automated SDK generation and maintenance.
-
-- **Orchestrator:** `ADIK.orchestrator.md` (operational orchestrator)
-- **Standard:** `ADIK.md` (standard definition)
-- **Registry:** `{registry_path}` (single source of truth for all public symbols)
-- **Agents:** `agents/builder.agent.md`, `agents/codebase-analyst.agent.md`
-- **Skills:** `skills/sdk-builder.skill.md`, `skills/sdk-consumer.skill.md`,
-  `skills/vectorize.skill.md`, `skills/registry-validator.skill.md`
-- **Tier-2 Skills:** `skills/sdk-builder-tier2.skill.md` (Go / Java / Kotlin — opt-in)
-- **MCP server:** `mcp/adik_mcp_server.py` — run with `python mcp/adik_mcp_server.py` (stdio) or `--transport http --port 3100`
-- **Build output:** `sdk/` ({sdk_languages})
-
-**Key rules for Copilot:**
-- Never define a type in the SDK that is not first declared in `{registry_path}`.
-- SDK files in `sdk/` are generated — do not edit them directly; update the source and re-run ADIK.
-- To trigger SDK regeneration: `@agent builder task: build-sdk registry: {registry_path}`
-- To refresh the registry: `@agent codebase-analyst task: analyse-and-register`
-- To eject ADIK: run `python3 scripts/adik-eject.py --target .` or set `ADIK_EJECT=true`
-<!-- ADIK:END -->
-"""
-
-CLAUDE_BLOCK = """\
-<!-- ADIK:START -->
-## ADIK — Agentic Development and Implementation Kit
-
-**Executive Summary:** {project_summary}
-
-**Orchestrator:** `ADIK.orchestrator.md`
-**Standard:** `ADIK.md`
-**Registry:** `{registry_path}`
-**MCP server:** `mcp/adik_mcp_server.py` — `python mcp/adik_mcp_server.py` (stdio) or `--transport http`
-**SDK output:** `sdk/` ({sdk_languages})
-**ADIK reach:** {adik_reach}
-
-**Key rules:**
-- `{registry_path}` is the single source of truth. All public symbols must be declared there.
-- Files in `sdk/` are generated. Do not edit them manually.
-- Run `@agent codebase-analyst task: analyse-and-register` to refresh the registry.
-- Run `@agent builder task: build-sdk` to regenerate the SDK after registry changes.
-- To eject ADIK cleanly: `python3 scripts/adik-eject.py --target .`
-<!-- ADIK:END -->
-"""
-
-AGENTS_BLOCK = """\
-<!-- ADIK:START -->
-## ADIK — SDK Orchestrator
-
-Loaded agents:
-- agents/builder.agent.md
-- agents/codebase-analyst.agent.md
-
-Loaded skills:
-- skills/sdk-builder.skill.md
-- skills/sdk-consumer.skill.md
-- skills/registry-validator.skill.md
-- skills/vectorize.skill.md (loaded on demand when vectorMode is active)
-- skills/sdk-builder-tier2.skill.md (loaded on demand when tier2Languages is configured)
-
-Registry: {registry_path}
-MCP server: mcp/adik_mcp_server.py (run: python mcp/adik_mcp_server.py)
-MCP spec: mcp/adik-mcp-server.md
-Vector store: {vector_store}
-SDK output: sdk/ ({sdk_languages})
-<!-- ADIK:END -->
-"""
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+START = '<!-- ADIK:PRODUCER:START -->'
+END = '<!-- ADIK:PRODUCER:END -->'
+CONTEXTS = ('AGENTS.md', 'CLAUDE.md', '.github/copilot-instructions.md')
 
 
-def _read(path: Path) -> str:
-    """Read file content, returning empty string if file does not exist."""
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
+def _upsert_block(content, block):
+    for start,end in [(START,END),('<!-- ADIK:START -->','<!-- ADIK:END -->')]:
+        if start in content or end in content:
+            if content.count(start) != 1 or content.count(end) != 1 or content.index(end) < content.index(start):
+                raise ContractError('Repair malformed or repeated context markers before embedding')
+            before,rest=content.split(start,1)
+            _,after=rest.split(end,1)
+            return before+block+after
+    return content.rstrip('\n')+('\n\n' if content else '')+block+'\n'
 
 
-def _write(path: Path, content: str) -> None:
-    """Write content to file, creating parent directories as needed."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-    print(f"  [written] {path}")
+def producer_block(target):
+    registry=resolve_registry(target).relative_to(target).as_posix()
+    return f'''{START}
+## Build an adik from this producer library
+
+ADIK generates actual SDK code and matching implementation skills, contracts,
+examples, and supporting context as one versioned adik. The host coding agent
+executes the generation and implementation workflows.
+
+- Start with `skills/build-adik/SKILL.md` and `ADIK.orchestrator.md`.
+- Producer registry: `{registry}`. Preserve the producer's source code.
+- Declare supported `consumerFrameworks` independently from the producer stack.
+- Generate real SDK files AND a library-specific implementation skill.
+- Run `python3 scripts/adik-bundle.py seal --bundle <output>` and `validate`.
+- Consumer agents use the completed adik's implementation skill to edit their application.
+- Install completed bundles with `scripts/adik-bundle.py install`; this producer toolkit
+  is not a completed adik and does not implement an SDK into a consumer application.
+{END}'''
 
 
-def _upsert_block(existing: str, new_block: str) -> str:
-    """
-    Insert or replace the ADIK block in `existing`.
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--target',type=Path,default=Path('.'))
+    parser.add_argument('--action',choices=['upsert','remove','check'],default='upsert')
+    parser.add_argument('--source-context',action='store_true',help='Regenerate framework-maintainer context in the ADIK source repository')
+    args=parser.parse_args()
+    target=args.target.resolve()
+    try:
+        if args.source_context and not (target/'ADIKbuilder.md').is_file():
+            raise ContractError('--source-context requires the framework source repository')
+        block=producer_block(target) if args.action=='upsert' else ''
+        planned={}
+        for name in CONTEXTS:
+            path=relative_path(target,name)
+            existing=path.read_text() if path.exists() else ''
+            if args.action=='check':
+                if existing.count(START) != 1 or existing.count(END) != 1 or existing.index(END) < existing.index(START):
+                    raise ContractError(f'Producer context missing: {name}')
+                continue
+            if args.action=='remove':
+                updated=existing
+                for start,end in [(START,END),('<!-- ADIK:START -->','<!-- ADIK:END -->')]:
+                    if start in updated or end in updated:
+                        if updated.count(start)!=1 or updated.count(end)!=1 or updated.index(end)<updated.index(start):
+                            raise ContractError(f'Malformed markers in {name}')
+                        before,rest=updated.split(start,1)
+                        _,after=rest.split(end,1)
+                        updated=before+after
+            elif args.source_context:
+                updated='''# ADIK framework contributor guidance
 
-    - If no markers are present: append the block.
-    - If markers are present: replace the content between them (inclusive).
-    - Never duplicates the block.
-    """
-    start = existing.find(ADIK_START_MARKER)
-    end = existing.find(ADIK_END_MARKER)
+Read `ADIKbuilder.md` first. ADIK is the skill suite and thesis; an adik is
+actual generated SDK code plus its matching agentic elements, shipped together.
+The developer builds an adik from a tool/library. A user's agent implements that
+adik in application code using its bundled implementation skill and context.
 
-    if start == -1 and end == -1:
-        # No existing block — append with a leading newline separator.
-        separator = "\n\n" if existing and not existing.endswith("\n\n") else ""
-        return existing + separator + new_block.rstrip() + "\n"
+The host coding agent owns execution. Keep producer source preservation separate
+from authorized consumer application edits. Library contracts belong to the producer;
+consumer framework detection must not replace them.
 
-    if start != -1 and end != -1:
-        # Replace existing block (inclusive of markers).
-        before = existing[:start]
-        after = existing[end + len(ADIK_END_MARKER):]
-        return before + new_block.rstrip() + "\n" + after.lstrip("\n")
+## Checks
 
-    # Mismatched markers — append safely and warn.
-    print(
-        "  [warn] Mismatched ADIK markers detected. Appending new block. "
-        "Please manually remove stale markers.",
-        file=sys.stderr,
-    )
-    return existing + "\n\n" + new_block.rstrip() + "\n"
+- Install helper dependencies: `python3 -m pip install -r requirements-dev.txt`.
+- Run `python3 -m unittest discover -s tests -v`.
+- Run `python3 scripts/check-docs.py` and `python3 adik-lint.py ADIK.md`.
+- Run `python3 scripts/adik-bundle.py validate --bundle examples/hello-adik`.
 
+## Maintenance
 
-def _remove_block(existing: str) -> str:
-    """Remove the ADIK block from `existing`, including surrounding blank lines."""
-    start = existing.find(ADIK_START_MARKER)
-    end = existing.find(ADIK_END_MARKER)
+Update the standard, skills, examples, and docs together when a contract changes.
+Keep skill frontmatter discoverable and load detailed references only as needed.
+Preserve user files during registration and removal; use ownership receipts.
+Use the shared registry validator in `mcp/adik_contracts.py` for CLI and MCP.
+Regenerate these context files with `scripts/adik-embed.py --source-context`.
 
-    if start == -1 or end == -1:
-        return existing  # Nothing to remove.
-
-    before = existing[:start].rstrip("\n")
-    after = existing[end + len(ADIK_END_MARKER):].lstrip("\n")
-    return (before + "\n" + after).rstrip() + "\n"
-
-
-def _has_block(content: str) -> bool:
-    return ADIK_START_MARKER in content and ADIK_END_MARKER in content
-
-
-# ---------------------------------------------------------------------------
-# Context gathering
-# ---------------------------------------------------------------------------
-
-
-def _gather_context(target: Path) -> dict:
-    """Collect runtime values used in template rendering."""
-    import json
-
-    registry_path = "Registry.md"
-    sdk_languages = "typescript, python, csharp"
-    vector_store = "none"
-    project_summary = "[auto-filled on deployment]"
-    adik_reach = "src/**/* → Registry.md → sdk/"
-
-    def _safe(value: str) -> str:
-        """Sanitize user-supplied strings for safe use in str.format() templates.
-        Escapes curly braces to prevent format-string injection."""
-        return str(value).replace("{", "{{").replace("}", "}}")
-
-    # Read adik.env.json if present.
-    env_file = target / "adik.env.json"
-    if env_file.exists():
-        try:
-            env = json.loads(env_file.read_text(encoding="utf-8"))
-            if env.get("vectors", {}).get("storeUri"):
-                vector_store = _safe(env["vectors"]["storeUri"])
-        except (json.JSONDecodeError, KeyError):
-            pass
-
-    # Read adik.config.json if present.
-    config_file = target / "adik.config.json"
-    if config_file.exists():
-        try:
-            cfg = json.loads(config_file.read_text(encoding="utf-8"))
-            languages = list(cfg.get("sdkLanguages", ["typescript", "python", "csharp"]))
-            tier2 = cfg.get("tier2Languages", [])
-            if tier2:
-                languages += [f"{_safe(l)} (tier-2)" for l in tier2]
-            sdk_languages = ", ".join(_safe(l) for l in languages)
-            if cfg.get("registryPath"):
-                registry_path = _safe(cfg["registryPath"])
-            if cfg.get("includePatterns"):
-                adik_reach = (
-                    ", ".join(_safe(p) for p in cfg["includePatterns"])
-                    + f" → {registry_path} → sdk/"
-                )
-        except (json.JSONDecodeError, KeyError):
-            pass
-
-    # Use partitioned index if present.
-    if (target / "Registry.index.md").exists():
-        registry_path = "Registry.index.md"
-
-    return {
-        "registry_path": registry_path,
-        "sdk_languages": sdk_languages,
-        "vector_store": vector_store,
-        "project_summary": project_summary,
-        "adik_reach": adik_reach,
-    }
+'''+block+'\n'
+            else:
+                updated=_upsert_block(existing,block)
+            planned[path]=updated
+        for path,content in planned.items():
+            path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_text(content)
+        print('ADIK producer context: PASS')
+        return 0
+    except (ContractError,OSError) as exc:
+        print(f'ADIK producer context: FAIL — {exc}',file=sys.stderr)
+        return 1
 
 
-# ---------------------------------------------------------------------------
-# Actions
-# ---------------------------------------------------------------------------
-
-
-def action_upsert(target: Path) -> None:
-    """Insert or update the ADIK block in all three context files."""
-    ctx = _gather_context(target)
-    # Values from _gather_context are already brace-escaped via _safe().
-    # Do NOT double-escape here.
-
-    files = {
-        target / ".github" / "copilot-instructions.md": COPILOT_BLOCK.format(**ctx),
-        target / "CLAUDE.md": CLAUDE_BLOCK.format(**ctx),
-        target / "agents.md": AGENTS_BLOCK.format(**ctx),
-    }
-
-    for path, block in files.items():
-        existing = _read(path)
-        updated = _upsert_block(existing, block)
-        if updated != existing:
-            _write(path, updated)
-        else:
-            print(f"  [up-to-date] {path}")
-
-
-def action_remove(target: Path) -> None:
-    """Remove the ADIK block from all three context files."""
-    paths = [
-        target / ".github" / "copilot-instructions.md",
-        target / "CLAUDE.md",
-        target / "agents.md",
-    ]
-    for path in paths:
-        if not path.exists():
-            continue
-        existing = _read(path)
-        updated = _remove_block(existing)
-        if updated != existing:
-            _write(path, updated)
-        else:
-            print(f"  [no block found] {path}")
-
-
-def action_check(target: Path) -> None:
-    """Check whether the ADIK block is present in all three context files."""
-    paths = {
-        ".github/copilot-instructions.md": target / ".github" / "copilot-instructions.md",
-        "CLAUDE.md": target / "CLAUDE.md",
-        "agents.md": target / "agents.md",
-    }
-    all_ok = True
-    for label, path in paths.items():
-        content = _read(path)
-        if _has_block(content):
-            print(f"  [OK]      {label}")
-        else:
-            print(f"  [MISSING] {label}")
-            all_ok = False
-    sys.exit(0 if all_ok else 1)
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Deterministically manage ADIK self-embedding blocks."
-    )
-    parser.add_argument(
-        "--action",
-        choices=["upsert", "remove", "check"],
-        required=True,
-        help="upsert: insert/update block; remove: strip block; check: verify block present",
-    )
-    parser.add_argument(
-        "--target",
-        default=".",
-        help="Root directory of the target repository (default: current directory)",
-    )
-    args = parser.parse_args()
-
-    target = Path(args.target).resolve()
-    if not target.is_dir():
-        print(f"Error: target directory '{target}' does not exist.", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"ADIK embed — action={args.action}, target={target}")
-
-    if args.action == "upsert":
-        action_upsert(target)
-    elif args.action == "remove":
-        action_remove(target)
-    elif args.action == "check":
-        action_check(target)
-
-
-if __name__ == "__main__":
-    main()
+if __name__=='__main__':
+    raise SystemExit(main())

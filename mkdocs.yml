@@ -1,7 +1,7 @@
 site_name: ADIK — Agentic Development and Implementation Kit
 site_description: >-
-  ADIK is a fully agentic framework for automating the creation and maintenance
-  of SDKs for any project — API, service, or library.
+  ADIK is a producer skill suite for generating SDK source and matching agentic
+  elements as one versioned bundle for consumer coding agents.
 site_url: https://mateors1.github.io/adik.md-agentic-development-and-implementation-kit-Framework/
 repo_url: https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework
 repo_name: mateors1/adik.md
@@ -36,15 +36,20 @@ nav:
   - Home: index.md
   - Getting Started:
     - Quickstart Guide: getting-started/quickstart-guide.md
+    - Consumer Guide: getting-started/consumer-guide.md
+    - Migration to v2: getting-started/migration-v2.md
     - Pre-Deployment Walkthrough: getting-started/pre-deployment.md
     - Configuration Reference: getting-started/configuration.md
     - "Cheat Sheet: Building an adik": getting-started/cheatsheet-building.md
     - "Cheat Sheet: Consuming a Generated SDK": getting-started/cheatsheet-consuming.md
   - Specification:
     - ADIK Standard: specification/standard.md
+    - Bundle Contract: specification/bundle-contract.md
     - Architecture: specification/architecture.md
     - Manifesto: specification/manifesto.md
   - Examples:
+    - Runnable Reference: examples/reference-adik.md
+    - Consumer Evaluation: examples/consumer-evaluation.md
     - "Showcase: Payments API (NestJS)": examples/showcase-payments-api.md
     - "Showcase: Task Manager (FastAPI)": examples/showcase-task-manager.md
     - "Showcase: Chat Service (TypeScript)": examples/showcase-chat-service.md
@@ -54,12 +59,18 @@ nav:
     - Red-Team Audit: security/red-team-audit-v2.md
   - Ecosystem:
     - "GitHub Spec Kit: Analysis & Integration": ecosystem/spec-kit.md
+  - Maintainers:
+    - Audit and Modernization: maintainers/audit-and-modernization.md
   - Community:
     - Launch Posts: community/launch-posts.md
 
 markdown_extensions:
   - tables
-  - fenced_code
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - admonition
   - toc:
       permalink: true

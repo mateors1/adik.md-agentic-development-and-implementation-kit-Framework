@@ -1,8 +1,11 @@
+> Historical analysis retained for context. Current behavior is specified in the
+> [v2 standard](../specification/standard.md) and [migration guide](../getting-started/migration-v2.md).
+
 # ADIK & GitHub Spec Kit — Full Specification Analysis
 
-> **Part of:** [ADIK — Agentic Development and Implementation Kit](../../README.md)
-> **See also:** [`ADIK.md`](../../ADIK.md), [`docs/specification/standard.md`](../specification/standard.md),
-> [`ADIK.orchestrator.md`](../../ADIK.orchestrator.md), [`ADIKbuilder.md`](../../ADIKbuilder.md)
+> **Part of:** [ADIK — Agentic Development and Implementation Kit](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework)
+> **See also:** [`ADIK.md`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/ADIK.md), [`docs/specification/standard.md`](../specification/standard.md),
+> [`ADIK.orchestrator.md`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/ADIK.orchestrator.md), [`ADIKbuilder.md`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/ADIKbuilder.md)
 
 This document provides a comprehensive, file-level comparison of the ADIK framework against GitHub Spec Kit
 ([github.com/github/spec-kit](https://github.com/github/spec-kit)) — an open-source, AI-native
@@ -96,11 +99,11 @@ Before comparing, here is every ADIK component and what it does:
 | `Registry.index.md` | Data | Master index for partitioned registries (domain partition table) |
 | `agents/codebase-analyst.agent.md` | Agent | Environment probe, project-type detection, framework inference, source scanning, Registry population |
 | `agents/builder.agent.md` | Agent | Registry validation, SDK generation coordination, audit log, self-embedding |
-| `skills/sdk-builder.skill.md` | Skill | Tier-1 SDK generation: TypeScript, Python, C# — full package with client, models, types, errors |
-| `skills/sdk-builder-tier2.skill.md` | Skill | Tier-2 SDK generation (opt-in): Go, Java, Kotlin — mirrors tier-1 contract |
-| `skills/sdk-consumer.skill.md` | Skill | Framework-idiomatic boilerplate — examples, DI wiring, retry wrappers, serialization helpers |
-| `skills/registry-validator.skill.md` | Skill | Three-level validation gate (Structural, Type, Semantic) before every SDK generation |
-| `skills/vectorize.skill.md` | Skill | Vector embedding and upsert — isolated from all other pipeline components |
+| `skills/sdk-builder/SKILL.md` | Skill | Tier-1 SDK generation: TypeScript, Python, C# — full package with client, models, types, errors |
+| `skills/sdk-builder-tier2/SKILL.md` | Skill | Tier-2 SDK generation (opt-in): Go, Java, Kotlin — mirrors tier-1 contract |
+| `skills/sdk-consumer/SKILL.md` | Skill | Framework-idiomatic boilerplate — examples, DI wiring, retry wrappers, serialization helpers |
+| `skills/registry-validator/SKILL.md` | Skill | Three-level validation gate (Structural, Type, Semantic) before every SDK generation |
+| `skills/vectorize/SKILL.md` | Skill | Vector embedding and upsert — isolated from all other pipeline components |
 | `scripts/adik-embed.py` | Script | Deterministic self-embedding into context files using `<!-- ADIK:START/END -->` guards |
 | `scripts/adik-eject.py` | Script | Clean uninstall — removes all ADIK artifacts without touching source code |
 | `scripts/adik-deploy.py` | Script | Factory-side bundle assembly and deployment (source repo only) |
@@ -244,8 +247,8 @@ below maps every ADIK component against the closest Spec Kit concept.
 | **Spec** — requirements and user stories | No direct equivalent | — | ADIK operates post-specification. It does not author requirements. |
 | **Plan** → `api-spec.json` — API contract | `Registry.md` — language-agnostic symbol registry | ✅ Complementary | ADIK's Registry is a richer, more detailed form of an API contract — typed, versioned, partitionable. An OpenAPI → Registry bridge would unify them. |
 | **Tasks** — granular task list | `agents/builder.agent.md` Execution Protocol (10-step numbered list) | ✅ Aligned conceptually | Both frameworks structure work as ordered, gated, numbered steps. |
-| **Implement** — AI-driven code generation | `skills/sdk-builder.skill.md` + `skills/sdk-builder-tier2.skill.md` + `skills/sdk-consumer.skill.md` | ✅ Complementary — different output | Spec Kit generates application code; ADIK generates SDK packages and boilerplate from the application. |
-| **Analyze** — cross-artifact consistency | `skills/registry-validator.skill.md` (3-level validation: S, T, P rules) | ✅ Aligned | Both have a cross-artifact consistency gate. ADIK's is more formal (S-001–P-004 rules). |
+| **Implement** — AI-driven code generation | `skills/sdk-builder/SKILL.md` + `skills/sdk-builder-tier2/SKILL.md` + `skills/sdk-consumer/SKILL.md` | ✅ Complementary — different output | Spec Kit generates application code; ADIK generates SDK packages and boilerplate from the application. |
+| **Analyze** — cross-artifact consistency | `skills/registry-validator/SKILL.md` (3-level validation: S, T, P rules) | ✅ Aligned | Both have a cross-artifact consistency gate. ADIK's is more formal (S-001–P-004 rules). |
 | **Constitution** — living document, version-controlled | `Registry.md` Changelog table + `adik.audit.log` NDJSON trail | ✅ Aligned | ADIK's audit trail is more machine-readable; Spec Kit's constitution is more human-narrative. |
 | **AI agent support** — 25+ agents | Self-embedding into `.github/copilot-instructions.md`, `CLAUDE.md`, `agents.md` | ✅ Aligned | ADIK achieves multi-agent awareness via self-embedding into the same context files Spec Kit uses. |
 | **Extension system** — `specify extension add` | Agent/skill architecture in `agents/` + `skills/` | ⚠️ Not interoperable | ADIK's extension model is internal (add an `.agent.md` / `.skill.md` file). It is not published to Spec Kit's community catalog. Becoming a Spec Kit extension would make ADIK discoverable there. |
@@ -372,8 +375,8 @@ spec-kit-adik/
 | Command | Invocation | What It Does | ADIK Component Triggered |
 |---|---|---|---|
 | `/speckit.adik.registry` | After `/speckit.implement` | Scans source code + reads `.specify/specs/*/contracts/api-spec.json`; populates `Registry.md` | `agents/codebase-analyst.agent.md` |
-| `/speckit.adik.sdk` | After `/speckit.adik.registry` | Validates Registry and generates SDK packages for configured languages | `agents/builder.agent.md` + `skills/sdk-builder.skill.md` |
-| `/speckit.adik.boilerplate` | After `/speckit.adik.sdk` | Generates framework-idiomatic integration boilerplate (DI wiring, retry wrappers, examples) | `skills/sdk-consumer.skill.md` |
+| `/speckit.adik.sdk` | After `/speckit.adik.registry` | Validates Registry and generates SDK packages for configured languages | `agents/builder.agent.md` + `skills/sdk-builder/SKILL.md` |
+| `/speckit.adik.boilerplate` | After `/speckit.adik.sdk` | Generates framework-idiomatic integration boilerplate (DI wiring, retry wrappers, examples) | `skills/sdk-consumer/SKILL.md` |
 | `/speckit.adik.status` | Any time | Reports Registry freshness, SDK sync status, which symbols need regeneration | `adik_get_build_report` MCP tool |
 
 ### 7.4 Integration in the Full SDD + ADIK Workflow
@@ -470,15 +473,15 @@ commands:
 
 | Capability | Spec Kit | ADIK | ADIK Component |
 |---|---|---|---|
-| **Multi-language SDK code generation** | ❌ Not in scope | ✅ TS, Python, C#, Go, Java, Kotlin | `skills/sdk-builder.skill.md` + `skills/sdk-builder-tier2.skill.md` |
+| **Multi-language SDK code generation** | ❌ Not in scope | ✅ TS, Python, C#, Go, Java, Kotlin | `skills/sdk-builder/SKILL.md` + `skills/sdk-builder-tier2/SKILL.md` |
 | **Language-agnostic symbol registry** | ❌ `api-spec.json` is per-feature, JSON only | ✅ `Registry.md` — YAML-in-Markdown, typed, partitionable, versioned | `Registry.md`, `Registry.index.md` |
 | **Self-maintaining CI pipeline** | ❌ Manual re-run required | ✅ `syncOnCommit: true` → every commit triggers re-analysis + regeneration | `ADIK.orchestrator.md` headless mode |
-| **Framework-idiomatic boilerplate** | ❌ Left to the developer | ✅ NestJS DI module, FastAPI `Depends`, ASP.NET `IServiceCollection`, React hook, Angular module | `skills/sdk-consumer.skill.md` |
+| **Framework-idiomatic boilerplate** | ❌ Left to the developer | ✅ NestJS DI module, FastAPI `Depends`, ASP.NET `IServiceCollection`, React hook, Angular module | `skills/sdk-consumer/SKILL.md` |
 | **Deterministic self-embedding** | Spec Kit writes commands at install time | ✅ `adik-embed.py` writes/updates context files with idempotent guard markers | `scripts/adik-embed.py` |
-| **Registry validation gate** | `/speckit.analyze` is optional consistency check | ✅ Mandatory 3-level gate (14 validation rules S-001–P-004); `FAIL` aborts generation | `skills/registry-validator.skill.md` |
+| **Registry validation gate** | `/speckit.analyze` is optional consistency check | ✅ Mandatory 3-level gate (14 validation rules S-001–P-004); `FAIL` aborts generation | `skills/registry-validator/SKILL.md` |
 | **Append-only audit trail** | ❌ None | ✅ `adik.audit.log` NDJSON — one structured record per build (compliance, debugging, drift detection) | `agents/builder.agent.md` §Audit Log |
 | **MCP server** | ❌ No MCP interface | ✅ 8 tools, 5 resources, 2 prompt templates via stdio or HTTP+SSE | `mcp/adik-mcp-server.md` |
-| **Vector/RAG semantic search** | ❌ Not in scope | ✅ `adik_vector_search` tool; 3 chunking strategies (symbol / file / sliding-window) | `skills/vectorize.skill.md` |
+| **Vector/RAG semantic search** | ❌ Not in scope | ✅ `adik_vector_search` tool; 3 chunking strategies (symbol / file / sliding-window) | `skills/vectorize/SKILL.md` |
 | **Formal conformance levels** | ❌ No conformance levels | ✅ Core (L1), Extended (L2), Full (L3) with MUST/SHOULD/MAY compliance checklist | `docs/specification/standard.md` §4 |
 | **Post-generation type-checking** | ❌ None | ✅ tsc, mypy, dotnet build after generation (advisory or strict via `ADIK_STRICT_TYPECHECK`) | `agents/builder.agent.md` §Post-generation |
 | **Clean eject** | Manual file deletion | ✅ `adik-eject.py` — removes all ADIK artifacts, respects guard markers, preserves source | `scripts/adik-eject.py` |
@@ -566,9 +569,9 @@ This means:
 | ADIK Standard Specification | [docs/specification/standard.md](../specification/standard.md) |
 | ADIK Architecture | [docs/specification/architecture.md](../specification/architecture.md) |
 | ADIK Manifesto | [docs/specification/manifesto.md](../specification/manifesto.md) |
-| ADIK Roadmap | [ROADMAP.md](../../ROADMAP.md) |
+| ADIK Roadmap | [ROADMAP.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/ROADMAP.md) |
 | ADIK Configuration Reference | [docs/getting-started/configuration.md](../getting-started/configuration.md) |
-| Builder Agent spec | [agents/builder.agent.md](../../agents/builder.agent.md) |
-| Codebase Analyst spec | [agents/codebase-analyst.agent.md](../../agents/codebase-analyst.agent.md) |
-| Registry Validator spec | [skills/registry-validator.skill.md](../../skills/registry-validator.skill.md) |
-| MCP Server spec | [mcp/adik-mcp-server.md](../../mcp/adik-mcp-server.md) |
+| Builder Agent spec | [agents/builder.agent.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/agents/builder.agent.md) |
+| Codebase Analyst spec | [agents/codebase-analyst.agent.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/agents/codebase-analyst.agent.md) |
+| Registry Validator spec | [skills/registry-validator/SKILL.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/skills/registry-validator/SKILL.md) |
+| MCP Server spec | [mcp/adik-mcp-server.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/mcp/adik-mcp-server.md) |

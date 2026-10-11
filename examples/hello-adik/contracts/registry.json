@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "hello",
+    "version": "1.0.0",
+    "projectType": "library",
+    "sourceLanguage": "python",
+    "lastAnalysed": "2026-10-10T00:00:00Z",
+    "lastAnalysedCommit": "reference:hello-v1"
+  },
+  "symbols": [
+    {
+      "id": "fn:greet",
+      "kind": "function",
+      "name": "greet",
+      "namespace": "hello_sdk",
+      "signature": "greet(name: str) -> str",
+      "description": "Trim a nonblank name and return Hello, <name>!; reject non-string or blank inputs.",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "string"
+      },
+      "errors": [
+        "TypeError",
+        "ValueError"
+      ]
+    }
+  ]
+}

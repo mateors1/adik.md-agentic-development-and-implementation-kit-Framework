@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from adik_contracts import ContractError, load_registry, resolve_registry, registry_report, validate_bundle, validate_registry, relative_path
 
 # ---------------------------------------------------------------------------
 # Server setup
@@ -42,7 +43,7 @@ mcp = FastMCP(
     "adik-mcp-server",
     instructions=(
         "MCP server exposing ADIK SDK generation, registry query, "
-        "and boilerplate scaffolding capabilities.  Version 1.0.0."
+        "and boilerplate scaffolding capabilities.  Version 2.0.0."
     ),
 )
 
@@ -68,7 +69,7 @@ def _find_project_root() -> Path:
     """Walk up from CWD to find a directory containing ADIK.md or Registry.md."""
     cwd = Path.cwd()
     for candidate in [cwd, *cwd.parents]:
-        if (candidate / "ADIK.md").exists() or (candidate / "Registry.md").exists():
+        if any((candidate / name).exists() for name in ("ADIK.md", "Registry.md", "adik.manifest.json", ".adik")):
             return candidate
     return cwd
 
@@ -119,17 +120,12 @@ def _parse_symbols_from_section(section_content: str) -> list[dict[str, str]]:
     return rows
 
 
-def _get_all_symbols(root: Path) -> list[dict[str, str]]:
-    """Load all symbols from all registry sections."""
-    registry = _read_file(root / "Registry.md")
-    if not registry:
-        return []
-    symbols = []
-    for section_key in SECTION_MAP:
-        section = _extract_section(registry, section_key)
-        if section:
-            symbols.extend(_parse_symbols_from_section(section))
-    return symbols
+def _get_all_symbols(root: Path) -> list[dict]:
+    data = load_registry(root)
+    errors = validate_registry(data)
+    if errors:
+        raise ContractError("; ".join(errors))
+    return data["symbols"]
 
 
 def _load_config(root: Path) -> dict[str, Any]:
@@ -159,82 +155,40 @@ def _load_env(root: Path) -> dict[str, Any]:
 
 
 @mcp.tool()
-def adik_get_registry(
-    section: str = "all",
-    filter: str = "",
-) -> str:
-    """Return the full contents of Registry.md or a filtered subset.
-
-    Args:
-        section: Which section to return. One of: all, endpoints, classes,
-                 interfaces, schemas, enums, functions, errors, metadata.
-        filter: Optional substring filter applied to symbol names.
-    """
-    root = _find_project_root()
-    content = _read_file(root / "Registry.md")
-    if not content:
-        return "ERROR: Registry.md not found. Run the Codebase Analyst first."
-
-    if section == "metadata":
-        meta = _extract_metadata(content)
-        return meta or "No metadata block found in Registry.md."
-
-    if section != "all":
-        extracted = _extract_section(content, section)
-        if not extracted:
-            return f"Section '{section}' not found or empty in Registry.md."
+def adik_get_registry(section: str = "all", filter: str = "") -> str:
+    """Read canonical symbols from the producer registry or a completed adik."""
+    try:
+        data = load_registry(_find_project_root())
+        errors = validate_registry(data)
+        if errors:
+            raise ContractError("; ".join(errors))
+        if section == "metadata":
+            return json.dumps(data["metadata"], indent=2, default=str)
+        kinds = {"endpoints": "endpoint", "classes": "class", "interfaces": "interface",
+                 "schemas": "schema", "enums": "enum", "functions": "function", "errors": "type"}
+        if section != "all" and section not in kinds:
+            raise ContractError(f"Unknown section: {section}")
+        symbols = data["symbols"]
+        if section != "all":
+            symbols = [s for s in symbols if s.get("kind") == kinds[section]]
         if filter:
-            lines = extracted.splitlines()
-            filtered = [l for l in lines if filter.lower() in l.lower() or "ADIK:" in l or "---" in l or l.strip().startswith("|") and "ID" in l]
-            return "\n".join(filtered) if filtered else f"No symbols matching '{filter}' in section '{section}'."
-        return extracted
-
-    # section == "all"
-    if filter:
-        lines = content.splitlines()
-        filtered = [l for l in lines if filter.lower() in l.lower()]
-        return "\n".join(filtered) if filtered else f"No lines matching '{filter}' in Registry.md."
-    return content
+            symbols = [s for s in symbols if filter.lower() in json.dumps(s).lower()]
+        return json.dumps({**data, "symbols": symbols}, indent=2, default=str)
+    except (ContractError, OSError) as exc:
+        return json.dumps({"status": "FAIL", "errors": [str(exc)]})
 
 
 @mcp.tool()
-def adik_get_symbol(
-    id: str = "",
-    name: str = "",
-) -> str:
-    """Look up a specific symbol in the Registry by ID or name.
-
-    Args:
-        id: The unique registry ID (e.g. 'fn:getUserById').
-        name: The symbol name. Used if id is not provided.
-    """
+def adik_get_symbol(id: str = "", name: str = "") -> str:
+    """Read a declared SDK symbol by exact ID or name."""
     if not id and not name:
-        return "ERROR: Provide either 'id' or 'name' to look up a symbol."
-
-    root = _find_project_root()
-    symbols = _get_all_symbols(root)
-    if not symbols:
-        return "ERROR: Registry.md not found or contains no symbols."
-
-    search = id or name
-    search_lower = search.lower()
-
-    for sym in symbols:
-        sym_id = sym.get("ID", "").lower()
-        sym_name = sym.get("Name", sym.get("name", "")).lower()
-        if search_lower in (sym_id, sym_name):
-            return json.dumps(sym, indent=2)
-
-    # Fuzzy match
-    matches = []
-    for sym in symbols:
-        values = " ".join(str(v) for v in sym.values()).lower()
-        if search_lower in values:
-            matches.append(sym)
-
-    if matches:
-        return json.dumps(matches, indent=2)
-    return f"No symbol found matching '{search}'."
+        return json.dumps({"status": "FAIL", "errors": ["Provide id or name"]})
+    try:
+        symbols = _get_all_symbols(_find_project_root())
+        matches = [s for s in symbols if s.get("id") == id] if id else [s for s in symbols if s.get("name") == name]
+        return json.dumps(matches[0] if len(matches) == 1 else matches, indent=2)
+    except (ContractError, OSError) as exc:
+        return json.dumps({"status": "FAIL", "errors": [str(exc)]})
 
 
 @mcp.tool()
@@ -265,90 +219,9 @@ def adik_get_build_report(
 
 
 @mcp.tool()
-def adik_validate_registry(
-    strict: bool = False,
-) -> str:
-    """Run deterministic structural validation on Registry.md.
-
-    Checks marker pairs, required metadata fields, unique IDs, valid kinds,
-    and valid projectType. Returns a structured validation result.
-
-    Args:
-        strict: When true, warnings become errors.
-    """
-    root = _find_project_root()
-    content = _read_file(root / "Registry.md")
-    if not content:
-        return json.dumps({"status": "FAIL", "errors": ["Registry.md not found."]})
-
-    errors: list[str] = []
-    warnings: list[str] = []
-
-    # S-001: Marker pairs
-    for section_key, marker in SECTION_MAP.items():
-        start_tag = f"<!-- ADIK:{marker}:START -->"
-        end_tag = f"<!-- ADIK:{marker}:END -->"
-        has_start = start_tag in content
-        has_end = end_tag in content
-        if has_start != has_end:
-            errors.append(f"S-001: Mismatched markers for {marker}.")
-
-    # S-002: Required metadata
-    meta = _extract_metadata(content)
-    if meta:
-        required = ["name", "version", "projectType", "sourceLanguage", "lastAnalysed", "lastAnalysedCommit"]
-        for field in required:
-            pattern = rf'^{field}:\s*".+"'
-            if not re.search(pattern, meta, re.MULTILINE):
-                # Check non-quoted values too
-                pattern2 = rf"^{field}:\s+\S+"
-                if not re.search(pattern2, meta, re.MULTILINE):
-                    errors.append(f"S-002: Required metadata field '{field}' missing or empty.")
-    else:
-        errors.append("S-002: No YAML metadata block found in Registry.md.")
-
-    # S-004: Unique symbol IDs
-    symbols = _get_all_symbols(root)
-    ids = [s.get("ID", "") for s in symbols if s.get("ID")]
-    seen: set[str] = set()
-    for sym_id in ids:
-        if sym_id in seen:
-            errors.append(f"S-004: Duplicate symbol ID '{sym_id}'.")
-        seen.add(sym_id)
-
-    # S-005: Valid kind values
-    valid_kinds = {"function", "class", "interface", "enum", "schema", "endpoint", "type"}
-    for sym in symbols:
-        kind = sym.get("Kind", sym.get("kind", "")).lower().strip()
-        if kind and kind not in valid_kinds:
-            errors.append(f"S-005: Invalid kind '{kind}' on symbol '{sym.get('ID', '?')}'.")
-
-    # S-006: Valid projectType
-    if meta:
-        pt_match = re.search(r'projectType:\s*"?(\w+)"?', meta)
-        if pt_match:
-            pt = pt_match.group(1)
-            if pt not in ("api", "service", "library"):
-                errors.append(f"S-006: Invalid projectType '{pt}'. Must be api, service, or library.")
-
-    # P-001: Empty descriptions (warning)
-    for sym in symbols:
-        desc = sym.get("Description", sym.get("description", "")).strip()
-        if not desc or len(desc.split()) <= 1:
-            w = f"P-001: Symbol '{sym.get('ID', sym.get('Name', '?'))}' has empty or single-word description."
-            warnings.append(w)
-
-    if strict:
-        errors.extend(warnings)
-        warnings = []
-
-    status = "FAIL" if errors else ("WARN" if warnings else "PASS")
-    return json.dumps({
-        "status": status,
-        "errors": errors,
-        "warnings": warnings,
-        "symbolCount": len(symbols),
-    }, indent=2)
+def adik_validate_registry(strict: bool = False) -> str:
+    """Validate the same JSON or legacy Markdown contract used by build preparation."""
+    return json.dumps(registry_report(_find_project_root(), strict), indent=2)
 
 
 @mcp.tool()
@@ -362,7 +235,7 @@ def adik_lint(
     """
     root = _find_project_root()
     lint_script = root / "adik-lint.py"
-    target = root / file
+    target = relative_path(root, file)
     if not lint_script.exists():
         return "ERROR: adik-lint.py not found in project root."
     if not target.exists():
@@ -420,7 +293,7 @@ def adik_eject(
 
     Args:
         dry_run: If true (default), show what would be removed without removing.
-        remove_sdk: If true, also remove the sdk/ directory.
+        remove_sdk: Legacy compatibility flag. Generated SDK files are preserved.
     """
     root = _find_project_root()
     script = root / "scripts" / "adik-eject.py"
@@ -447,74 +320,19 @@ def adik_eject(
 
 @mcp.tool()
 def adik_status() -> str:
-    """Return a summary of the current ADIK project state.
-
-    Reports: project root, registry presence, symbol count, SDK directories,
-    last build info, config, and environment state.
-    """
+    """Report producer registry health and installed consumer adiks."""
     root = _find_project_root()
-    info: dict[str, Any] = {"projectRoot": str(root)}
-
-    # Registry
-    reg = _read_file(root / "Registry.md")
-    if reg:
-        info["registryFound"] = True
-        meta = _extract_metadata(reg)
-        if meta:
-            for field in ["name", "version", "projectType", "sourceLanguage", "lastAnalysed"]:
-                m = re.search(rf'{field}:\s*"?([^"\n]+)"?', meta)
-                if m:
-                    info[field] = m.group(1).strip()
-        symbols = _get_all_symbols(root)
-        info["symbolCount"] = len(symbols)
-    else:
-        info["registryFound"] = False
-        info["symbolCount"] = 0
-
-    # Partitioned?
-    info["partitioned"] = (root / "Registry.index.md").exists()
-
-    # SDK directories
-    sdk_dir = root / "sdk"
-    if sdk_dir.exists():
-        langs = [d.name for d in sdk_dir.iterdir() if d.is_dir()]
-        info["sdkLanguages"] = langs
-        info["buildReportExists"] = (sdk_dir / "BUILD_REPORT.md").exists()
-        info["validationReportExists"] = (sdk_dir / "VALIDATION_REPORT.md").exists()
-    else:
-        info["sdkLanguages"] = []
-        info["buildReportExists"] = False
-        info["validationReportExists"] = False
-
-    # Config
-    info["configExists"] = (root / "adik.config.json").exists()
-    info["envExists"] = (root / "adik.env.json").exists()
-    info["auditLogExists"] = (root / "adik.audit.log").exists()
-
-    # Audit log last entry
-    audit_path = root / "adik.audit.log"
-    if audit_path.exists():
-        lines = audit_path.read_text(encoding="utf-8").strip().splitlines()
-        if lines:
-            try:
-                last = json.loads(lines[-1])
-                info["lastBuild"] = {
-                    "timestamp": last.get("timestamp"),
-                    "exitStatus": last.get("exitStatus"),
-                    "commitSha": last.get("commitSha", "")[:8],
-                }
-            except json.JSONDecodeError:
-                info["lastBuild"] = None
-
-    # Embedding status
-    for ctx_file in [".github/copilot-instructions.md", "CLAUDE.md", "agents.md"]:
-        p = root / ctx_file
-        if p.exists():
-            content = p.read_text(encoding="utf-8")
-            info[f"embedded_{ctx_file.replace('/', '_').replace('.', '_')}"] = ADIK_START in content
-        else:
-            info[f"embedded_{ctx_file.replace('/', '_').replace('.', '_')}"] = False
-
+    info = {"projectRoot": str(root), "registry": registry_report(root),
+            "completedBundle": (root / "adik.manifest.json").is_file(),
+            "installedAdiks": []}
+    for receipt in sorted((root / ".adik/.receipts").glob("*.json")):
+        try:
+            item = json.loads(receipt.read_text())
+            if not isinstance(item, dict):
+                raise ValueError("Invalid receipt")
+            info["installedAdiks"].append({k: item.get(k) for k in ("id", "version", "client")})
+        except (ValueError, OSError):
+            info["installedAdiks"].append({"error": f"Unreadable receipt {receipt.name}"})
     return json.dumps(info, indent=2)
 
 
@@ -524,63 +342,23 @@ def adik_status() -> str:
 
 
 @mcp.tool()
-def adik_build_sdk(
-    languages: list[str] | None = None,
-    incremental: bool = False,
-    output_dir: str = "./sdk",
-) -> str:
-    """Trigger SDK generation. Returns a structured instruction payload that
-    the calling LLM should execute by loading the Builder Agent.
-
-    This tool cannot generate code autonomously — it assembles the context and
-    instructions that the LLM should follow to produce the SDK.
-
-    Args:
-        languages: Target languages (default: from config).
-        incremental: If true, only regenerate changed symbols.
-        output_dir: Override the output directory.
-    """
+def adik_build_sdk(languages: list[str] | None = None, incremental: bool = False,
+                   output_dir: str = "") -> str:
+    """Prepare producer instructions to generate SDK code AND matching agentic elements."""
     root = _find_project_root()
+    validation = registry_report(root)
+    if validation["status"] == "FAIL":
+        return json.dumps({"status": "BLOCKED", "validation": validation}, indent=2)
     config = _load_config(root)
-    langs = languages or config.get("sdkLanguages", ["typescript", "python", "csharp"])
-
-    # Pre-flight: validate registry first
-    reg = _read_file(root / "Registry.md")
-    if not reg:
-        return json.dumps({
-            "status": "BLOCKED",
-            "reason": "Registry.md not found. Run adik_analyse_codebase first.",
-        })
-
-    symbols = _get_all_symbols(root)
-    if not symbols:
-        return json.dumps({
-            "status": "BLOCKED",
-            "reason": "Registry.md is empty. Run adik_analyse_codebase first.",
-        })
-
     return json.dumps({
-        "status": "READY",
-        "action": "build_sdk",
-        "instruction": (
-            "Load agents/builder.agent.md and execute its full protocol. "
-            "The registry is populated and ready."
-        ),
-        "context": {
-            "registryPath": "Registry.md",
-            "languages": langs,
-            "incremental": incremental,
-            "outputDir": output_dir,
-            "projectType": config.get("projectType", "auto"),
-            "symbolCount": len(symbols),
-            "tier2Languages": config.get("tier2Languages", []),
-        },
-        "agentFile": "agents/builder.agent.md",
-        "skillFiles": [
-            "skills/registry-validator.skill.md",
-            "skills/sdk-builder.skill.md",
-            "skills/sdk-consumer.skill.md",
-        ] + (["skills/sdk-builder-tier2.skill.md"] if config.get("tier2Languages") else []),
+        "status": "READY", "action": "build_adik", "validation": validation,
+        "instruction": "Read skills/build-adik/SKILL.md. Generate actual SDK source code, matching implementation skills, references, and examples. Validate and package one completed adik. The host agent executes this work.",
+        "context": {"registryPath": str(resolve_registry(root).relative_to(root)),
+                    "languages": languages or config.get("sdkLanguages", ["typescript", "python", "csharp"]),
+                    "incremental": incremental, "outputDir": output_dir or config.get("outputDir", "generated/adik"),
+                    "consumerFrameworks": config.get("consumerFrameworks", []),
+                    "tier2Languages": config.get("tier2Languages", [])},
+        "skillFiles": ["skills/build-adik/SKILL.md", "skills/sdk-builder/SKILL.md", "skills/sdk-consumer/SKILL.md"]
     }, indent=2)
 
 
@@ -616,7 +394,7 @@ def adik_analyse_codebase(
         "action": "analyse_codebase",
         "instruction": (
             "Load agents/codebase-analyst.agent.md and execute its full protocol. "
-            "Scan the target directory, discover all public symbols, and populate Registry.md."
+            "Scan the target directory, discover public symbols, and populate the configured registry. Prefer contracts/registry.json for new producers."
         ),
         "context": {
             "target": target,
@@ -628,54 +406,25 @@ def adik_analyse_codebase(
         },
         "agentFile": "agents/codebase-analyst.agent.md",
         "skillFiles": (
-            ["skills/vectorize.skill.md"] if env.get("vectorMode") == "active" else []
+            ["skills/vectorize/SKILL.md"] if env.get("vectorMode") == "active" else []
         ),
     }, indent=2)
 
 
 @mcp.tool()
-def adik_scaffold_boilerplate(
-    language: str = "typescript",
-    framework: str = "",
-    symbols: list[str] | None = None,
-) -> str:
-    """Trigger boilerplate generation. Returns a structured instruction payload
-    that the calling LLM should execute by loading the SDK Consumer Skill.
-
-    Args:
-        language: Target language (typescript, python, or csharp).
-        framework: Framework hint (e.g. react, nestjs, fastapi, aspnet).
-        symbols: Optional list of symbol IDs to generate for.
-    """
+def adik_scaffold_boilerplate(language: str = "typescript", framework: str = "",
+                             symbols: list[str] | None = None) -> str:
+    """Prepare producer instructions for implementation skills and runnable examples."""
     root = _find_project_root()
+    validation = registry_report(root)
+    if validation["status"] == "FAIL":
+        return json.dumps({"status": "BLOCKED", "validation": validation})
     config = _load_config(root)
-    env = _load_env(root)
-
-    reg = _read_file(root / "Registry.md")
-    if not reg:
-        return json.dumps({
-            "status": "BLOCKED",
-            "reason": "Registry.md not found. Run adik_analyse_codebase first.",
-        })
-
-    framework_hints = [framework] if framework else env.get("frameworkHints", [])
-
-    return json.dumps({
-        "status": "READY",
-        "action": "scaffold_boilerplate",
-        "instruction": (
-            "Load skills/sdk-consumer.skill.md and execute its generation protocol "
-            f"for {language}. Generate examples, DI wiring, retry wrappers, and "
-            "serialization helpers."
-        ),
-        "context": {
-            "language": language,
-            "frameworkHints": framework_hints,
-            "symbols": symbols or "all",
-            "outputDir": config.get("outputDir", "./sdk"),
-        },
-        "skillFiles": ["skills/sdk-consumer.skill.md"],
-    }, indent=2)
+    return json.dumps({"status": "READY", "action": "build_implementation_kit",
+        "instruction": "Read skills/sdk-consumer/SKILL.md and generate implementation skills for the actual SDK, including references and runnable examples.",
+        "context": {"language": language, "consumerFrameworks": [framework] if framework else config.get("consumerFrameworks", []),
+                    "symbols": symbols or "all", "outputDir": config.get("outputDir", "generated/adik")},
+        "skillFiles": ["skills/sdk-consumer/SKILL.md"]}, indent=2)
 
 
 @mcp.tool()
@@ -711,7 +460,7 @@ def adik_vector_search(
         "status": "NOT_IMPLEMENTED",
         "reason": (
             "Vector store integration is not yet implemented in the MCP server. "
-            "The vectorize skill (skills/vectorize.skill.md) defines the protocol."
+            "The vectorize skill (skills/vectorize/SKILL.md) defines the protocol."
         ),
         "query": query,
         "scope": scope,
@@ -723,11 +472,25 @@ def adik_vector_search(
 # Resources — expose key files as MCP resources
 # ---------------------------------------------------------------------------
 
+
+@mcp.tool()
+def adik_implement(bundle: str, capability: str = "") -> str:
+    """Prepare a consumer implementation handoff from a validated completed adik."""
+    try:
+        root = _find_project_root()
+        bundle_root = relative_path(root, bundle)
+        manifest = validate_bundle(bundle_root)
+        return json.dumps({"status": "READY", "action": "implement_adik",
+            "bundleId": manifest["id"], "version": manifest["version"], "capability": capability,
+            "instruction": "Load the matching bundled implementation skill. Use its SDK contracts and examples, inspect application integration points, implement the user's request, and run the documented checks.",
+            "skillFiles": [str((bundle_root / s["path"]).relative_to(root)) for s in manifest["implementationSkills"]]}, indent=2)
+    except (ContractError, OSError) as exc:
+        return json.dumps({"status": "BLOCKED", "reason": str(exc)})
+
 @mcp.resource("adik://registry")
 def resource_registry() -> str:
-    """The full Registry.md contents."""
-    root = _find_project_root()
-    return _read_file(root / "Registry.md") or "Registry.md not found."
+    """The normalized producer or completed-adik registry."""
+    return adik_get_registry()
 
 
 @mcp.resource("adik://config")
@@ -774,7 +537,9 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.transport == "http":
-        mcp.run(transport="streamable-http", host="127.0.0.1", port=args.port)
+        mcp.settings.host = "127.0.0.1"
+        mcp.settings.port = args.port
+        mcp.run(transport="streamable-http")
     else:
         mcp.run(transport="stdio")
 

@@ -1,0 +1,43 @@
+{
+  "files": {
+    "contracts/registry.json": "49a9946bbd395d312a78d1df46d8a6f75d3d2a5be4486a72385dd223cf92c7db",
+    "sdk/python/hello_sdk/__init__.py": "ed6f4332d9b932c7c886b604a56de1c20f5d67ebb4ee65c9999f4c14d4641cb5",
+    "sdk/python/pyproject.toml": "609700ed2ac00213e807b423c2a0e0444068aed74cd3ce82341f4985582a03fe",
+    "skills/implement-hello/SKILL.md": "070d5cdd4f60e49b834b26e0fc168d7a313fc38bf0dabba726fe99c5ba4dc842",
+    "skills/implement-hello/assets/example.py": "f39a5bfbf6a6fbfd6ae5c3410db5d2a153e776ea9cc17499c830030cfa34c561",
+    "skills/implement-hello/references/capabilities.md": "cd8064ef52a50ba9dc114fd34b403836ec67eec8a0063752bc3462a9ba05aeef"
+  },
+  "id": "hello",
+  "implementationSkills": [
+    {
+      "examples": [
+        "skills/implement-hello/assets/example.py"
+      ],
+      "path": "skills/implement-hello/SKILL.md",
+      "references": [
+        "skills/implement-hello/references/capabilities.md"
+      ],
+      "sdkLanguages": [
+        "python"
+      ],
+      "symbolIds": [
+        "fn:greet"
+      ]
+    }
+  ],
+  "registry": "contracts/registry.json",
+  "schemaVersion": 2,
+  "sdks": [
+    {
+      "entryPoint": "sdk/python/hello_sdk/__init__.py",
+      "language": "python",
+      "packageManifest": "sdk/python/pyproject.toml",
+      "path": "sdk/python",
+      "version": "1.0.0"
+    }
+  ],
+  "source": {
+    "revision": "reference:hello-v1"
+  },
+  "version": "1.0.0"
+}

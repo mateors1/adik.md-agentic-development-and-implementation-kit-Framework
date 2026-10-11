@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-adik-deploy.py — ADIK Bundle Assembly and Deployment Script
+adik-deploy.py — ADIK Producer Toolkit Deployment
 
-Assembles the adik bundle from the ADIK source repository and deploys it to a
-target directory or repository. This is the operational tool invoked by
-ADIKbuilder.md to produce a deployable adik.
+Copies the ADIK producer skills and helpers into a tool/library repository.
+This is a producer bootstrap, not a completed SDK-and-skills adik. A host coding
+agent performs generation after deployment.
 
 The script:
   1. Validates that all required bundle files exist in the source repo.
@@ -31,12 +31,17 @@ Environment variables:
 """
 
 import argparse
+import json
+import hashlib
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import List, Tuple
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "mcp"))
+from adik_contracts import relative_path, ContractError, read_json
 
 # ---------------------------------------------------------------------------
 # Bundle manifest — files and directories included in every adik
@@ -47,6 +52,8 @@ BUNDLE_FILES = [
     "ADIK.orchestrator.md",
     "Registry.md",
     "Registry.index.md",
+    "adik-lint.py",
+    "requirements-adik.txt",
 ]
 
 BUNDLE_DIRS = [
@@ -54,6 +61,8 @@ BUNDLE_DIRS = [
     "skills",
     "scripts",
     "mcp",
+    "schemas",
+    ".agents",
 ]
 
 # Files that are NEVER deployed (source-repo only)
@@ -66,7 +75,6 @@ EXCLUDED_FILES = [
     "README.md",
     "README.pypi.md",
     "LICENSE",
-    "adik-lint.py",
     "mkdocs.yml",
     "requirements-docs.txt",
     "pyproject.toml",
@@ -86,7 +94,8 @@ EXCLUDED_DIRS = [
 
 # Files within bundle directories that should NOT be deployed
 EXCLUDED_FROM_SCRIPTS = [
-    "adik-deploy.py",  # factory-side only; not part of the adik
+    "adik-deploy.py",  # factory-side only
+    "check-docs.py",  # framework contributor check, needs source docs
 ]
 
 # ADIK-owned paths that are not considered target project source.
@@ -106,6 +115,7 @@ ADIK_OWNED_DIRS = {
 ADIK_OWNED_FILES = set(BUNDLE_FILES) | {
     "ADIKbuilder.md",
     "agents.md",
+    "AGENTS.md",
     "CLAUDE.md",
     "adik.env.json",
     "adik.audit.log",
@@ -150,10 +160,10 @@ def validate_source(source: Path) -> Tuple[bool, List[str]]:
     key_files = [
         "agents/builder.agent.md",
         "agents/codebase-analyst.agent.md",
-        "skills/sdk-builder.skill.md",
-        "skills/sdk-consumer.skill.md",
-        "skills/registry-validator.skill.md",
-        "skills/vectorize.skill.md",
+        "skills/sdk-builder/SKILL.md",
+        "skills/sdk-consumer/SKILL.md",
+        "skills/registry-validator/SKILL.md",
+        "skills/vectorize/SKILL.md",
         "scripts/adik-embed.py",
         "scripts/adik-eject.py",
         "mcp/adik-mcp-server.md",
@@ -166,16 +176,22 @@ def validate_source(source: Path) -> Tuple[bool, List[str]]:
     return len(errors) == 0, errors
 
 
-def check_target_conflicts(target: Path) -> List[str]:
-    """Check if target already has adik files (potential overwrite)."""
-    conflicts = []
-    for f in BUNDLE_FILES:
-        if (target / f).is_file():
-            conflicts.append(f)
-    for d in BUNDLE_DIRS:
-        if (target / d).is_dir():
-            conflicts.append(f"{d}/")
-    return conflicts
+def deployment_files(source: Path) -> List[str]:
+    files = list(BUNDLE_FILES)
+    for directory in BUNDLE_DIRS:
+        for path in sorted((source / directory).rglob('*')):
+            name = path.relative_to(source).as_posix()
+            if any(part in ("__pycache__", ".git", "node_modules") or part.endswith(".egg-info") for part in path.parts):
+                continue
+            relative_path(source, name)
+            if path.is_file() and path.name not in EXCLUDED_FROM_SCRIPTS:
+                files.append(name)
+    return sorted(files)
+
+
+def check_target_conflicts(source: Path, target: Path) -> List[str]:
+    """Existing directories alone do not establish a conflict or ownership."""
+    return [name for name in deployment_files(source) if relative_path(target, name).exists()]
 
 
 def has_user_source_files(target: Path) -> bool:
@@ -215,61 +231,23 @@ def has_user_source_files(target: Path) -> bool:
 
 def deploy_bundle(source: Path, target: Path, dry_run: bool = False,
                   is_dist: bool = False) -> List[str]:
-    """
-    Copy the adik bundle from source to target.
-
-    Args:
-        source:   Path to the ADIK source repository root.
-        target:   Path to the target directory.
-        dry_run:  If True, report what would be copied without writing.
-        is_dist:  If True, deploying to a distribution repo (skip adik-deploy.py
-                  from scripts/).
-
-    Returns:
-        List of deployed file paths (relative to target).
-    """
-    deployed = []
-
-    # Copy individual bundle files
-    for f in BUNDLE_FILES:
-        src = source / f
-        dst = target / f
-        if src.is_file():
-            if not dry_run:
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(str(src), str(dst))
-            deployed.append(f)
-
-    # Copy bundle directories
-    for d in BUNDLE_DIRS:
-        src_dir = source / d
-        dst_dir = target / d
-        if src_dir.is_dir():
-            for root, dirs, files in os.walk(str(src_dir)):
-                root_path = Path(root)
-                rel_root = root_path.relative_to(source)
-
-                # Skip excluded subdirectories
-                dirs[:] = [
-                    sub for sub in dirs
-                    if sub not in ("__pycache__", ".git", "node_modules")
-                    and not sub.endswith(".egg-info")
-                ]
-
-                for fname in files:
-                    # Skip factory-only files
-                    if fname in EXCLUDED_FROM_SCRIPTS:
-                        continue
-
-                    rel_file = rel_root / fname
-                    src_file = source / rel_file
-                    dst_file = target / rel_file
-
-                    if not dry_run:
-                        dst_file.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copy2(str(src_file), str(dst_file))
-                    deployed.append(str(rel_file))
-
+    """Copy producer files after preflighting paths and any previous receipt."""
+    deployed = deployment_files(source)
+    receipt = relative_path(target, ".adik-producer-files.json")
+    previous = read_json(receipt) if receipt.exists() else {}
+    for name in deployed:
+        relative_path(source, name)
+        relative_path(target, name)
+    if source == target or target.is_relative_to(source):
+        raise ContractError("Deploy the producer toolkit outside its framework source checkout")
+    if dry_run:
+        return deployed
+    for name in deployed:
+        destination = relative_path(target, name)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(relative_path(source, name), destination)
+    previous.update({name: hashlib.sha256((target / name).read_bytes()).hexdigest() for name in deployed})
+    receipt.write_text(json.dumps(previous, indent=2, sort_keys=True) + "\n")
     return deployed
 
 
@@ -362,7 +340,7 @@ def main():
     if not args.dry_run:
         target.mkdir(parents=True, exist_ok=True)
 
-    conflicts = check_target_conflicts(target)
+    conflicts = check_target_conflicts(source, target)
     if conflicts and not args.force and not args.dry_run:
         print(f"\n⚠  Target already contains {len(conflicts)} adik file(s):")
         for c in conflicts[:10]:
@@ -396,7 +374,8 @@ def main():
     # --- Step 4: Optional embedding ---
     if args.embed and not args.dry_run:
         print()
-        run_embed(target)
+        if not run_embed(target):
+            sys.exit(1)
 
     # --- Step 5: Summary ---
     print()
@@ -405,7 +384,7 @@ def main():
     else:
         print(f"✓ adik bundle deployed to {target}")
         if not args.embed:
-            print("  Tip: run with --embed to also set up context files (.github/copilot-instructions.md, CLAUDE.md, agents.md)")
+            print("  Tip: run with --embed to also set up context files (.github/copilot-instructions.md, CLAUDE.md, AGENTS.md)")
         if not has_user_source_files(target):
             print("  ⚠  No user source files were detected in the target project.")
             print("     ADIK deployment only installs framework artifacts.")
@@ -418,4 +397,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (ContractError, OSError) as exc:
+        print(f"ADIK producer deployment: FAIL — {exc}", file=sys.stderr)
+        raise SystemExit(1)
