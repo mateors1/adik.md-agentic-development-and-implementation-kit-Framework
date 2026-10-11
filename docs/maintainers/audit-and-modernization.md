@@ -77,11 +77,13 @@ developer's environment; they do not need to become ADIK product responsibilitie
 - Documentation links and native skill metadata passed the repository checker.
 - The reference SDK works from a registered bundle without the producer repository.
   Its package also builds, installs into an isolated directory and imports successfully.
-- CI defines Python 3.10, 3.12 and 3.13 checks and a strict documentation build.
-  Those remote runs have not been observed as part of this local report.
-- MkDocs dependencies could not be installed in the audit environment, so the full
-  documentation-site build remains to be checked in CI. The diagrams and Markdown
-  are included in the source tree.
+- Python 3.10, 3.12 and 3.13 contract checks and package builds passed in
+  [PR CI](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/actions/runs/38107183041).
+- MkDocs dependencies could not be installed locally. The strict site build runs in
+  CI; its first run exposed older ecosystem links that escaped the docs tree. Those
+  links were corrected and the local checker now detects this class of problem.
+  See [PR checks](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/pull/8/checks)
+  for the current site-build result.
 
 Client registration files were exercised deterministically. Live discovery by each
 client and actual model-driven generation/implementation remain evaluation work.

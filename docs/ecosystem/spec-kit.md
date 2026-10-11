@@ -4,8 +4,8 @@
 # ADIK & GitHub Spec Kit — Full Specification Analysis
 
 > **Part of:** [ADIK — Agentic Development and Implementation Kit](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework)
-> **See also:** [`ADIK.md`](../../ADIK.md), [`docs/specification/standard.md`](../specification/standard.md),
-> [`ADIK.orchestrator.md`](../../ADIK.orchestrator.md), [`ADIKbuilder.md`](../../ADIKbuilder.md)
+> **See also:** [`ADIK.md`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/ADIK.md), [`docs/specification/standard.md`](../specification/standard.md),
+> [`ADIK.orchestrator.md`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/ADIK.orchestrator.md), [`ADIKbuilder.md`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/ADIKbuilder.md)
 
 This document provides a comprehensive, file-level comparison of the ADIK framework against GitHub Spec Kit
 ([github.com/github/spec-kit](https://github.com/github/spec-kit)) — an open-source, AI-native
@@ -569,9 +569,9 @@ This means:
 | ADIK Standard Specification | [docs/specification/standard.md](../specification/standard.md) |
 | ADIK Architecture | [docs/specification/architecture.md](../specification/architecture.md) |
 | ADIK Manifesto | [docs/specification/manifesto.md](../specification/manifesto.md) |
-| ADIK Roadmap | [ROADMAP.md](../../ROADMAP.md) |
+| ADIK Roadmap | [ROADMAP.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/ROADMAP.md) |
 | ADIK Configuration Reference | [docs/getting-started/configuration.md](../getting-started/configuration.md) |
-| Builder Agent spec | [agents/builder.agent.md](../../agents/builder.agent.md) |
-| Codebase Analyst spec | [agents/codebase-analyst.agent.md](../../agents/codebase-analyst.agent.md) |
-| Registry Validator spec | [skills/registry-validator/SKILL.md](../../skills/registry-validator/SKILL.md) |
-| MCP Server spec | [mcp/adik-mcp-server.md](../../mcp/adik-mcp-server.md) |
+| Builder Agent spec | [agents/builder.agent.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/agents/builder.agent.md) |
+| Codebase Analyst spec | [agents/codebase-analyst.agent.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/agents/codebase-analyst.agent.md) |
+| Registry Validator spec | [skills/registry-validator/SKILL.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/skills/registry-validator/SKILL.md) |
+| MCP Server spec | [mcp/adik-mcp-server.md](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework/blob/main/mcp/adik-mcp-server.md) |
