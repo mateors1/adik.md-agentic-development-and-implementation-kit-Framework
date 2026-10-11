@@ -1,484 +1,118 @@
 # ADIK Standard Specification
 
-> **Standard Version:** 1.0.0
-> **Status:** Active
-> **Source:** [`mateors1/adik.md-agentic-development-and-implementation-kit-Framework`](https://github.com/mateors1/adik.md-agentic-development-and-implementation-kit-Framework)
+> **Standard Version:** 2.0.0
+> **Status:** Proposed in the producer/consumer modernization change
 
----
+## 1. Thesis and terminology
 
-## 1. Abstract
+ADIK is a skill suite that generates SDKs for agents. An **adik** is the completed
+artifact: actual generated SDK code plus matching implementation skills, contracts,
+examples, and context, shipped together. The host coding agent executes the skills.
 
-The Agentic Development and Implementation Kit (ADIK) is a standard for agentic SDK generation. It defines the contracts, formats, and protocols by which cooperating LLM agents analyse a source project, populate a symbol registry, and generate publish-ready SDK packages across multiple target languages — without modifying the source code. Any implementation that conforms to this specification is ADIK-compatible.
+A **producer** is the developer of the source tool/library. A **consumer** is the
+application developer whose agent implements the completed adik. The **producer
+toolkit** is the generation scaffolding; it is distinct from a completed adik.
 
----
+MUST, SHOULD, and MAY express normative requirements in this document.
 
-## 2. Terminology
+## 2. Producer requirements
 
-The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
+The producer workflow MUST analyze public interfaces, populate and validate a
+registry, generate actual SDK source, generate matching agentic elements, run
+available checks, and package one completed deliverable. It MUST preserve source
+library code unless the developer separately requests source changes.
 
-| Term | Definition |
-|---|---|
-| **Orchestrator** | A top-level markdown document that defines the agentic workflow, sequencing agent invocations and gating transitions. ADIK defines three: a Factory Orchestrator (`ADIKbuilder.md`, development-time), a Standard Definition (`ADIK.md`, the formal specification), and an Operational Orchestrator (`ADIK.orchestrator.md`, deployment-time — the brain inside every adik). |
-| **adik** | A self-sustaining agentic SDK — the complete deployable bundle containing the standard definition, operational orchestrator, agents, skills, registry, generated SDK packages, and maintenance infrastructure. An adik carries its own pipeline and can regenerate itself on every commit. |
-| **Agent** | An autonomous LLM-invocable unit that performs a multi-step task (e.g., analyse a codebase, build an SDK). Agents MAY delegate to one or more Skills. |
-| **Skill** | A single-responsibility LLM-invocable unit that performs one focused task (e.g., generate code for one language, validate a registry). Skills MUST NOT delegate to other Skills. |
-| **Registry** | The single source of truth for all symbols extracted from a source project, stored in `Registry.md` (monolithic) or partitioned across domain files indexed by `Registry.index.md`. |
-| **Symbol** | A discrete programming construct (function, class, interface, enum, schema, endpoint, or type) declared in the Registry with a unique stable identifier. |
-| **Guard Marker** | An HTML comment pair (`<!-- ADIK:*:START -->` / `<!-- ADIK:*:END -->`) that delimits machine-managed content within a file, enabling idempotent updates. |
-| **Tier-1 Language** | A target language included by default: TypeScript, Python, C#. |
-| **Tier-2 Language** | An opt-in target language requiring explicit configuration: Go, Java, Kotlin. |
-| **Bundle** | The set of files deployed to a target repository to enable ADIK-driven SDK generation. |
-
----
-
-## 3. Standard Version
+A producer MUST distinguish its own framework architecture from supported consumer
+frameworks. Missing consumer-framework information SHOULD yield framework-neutral
+recipes. Optional generation targets MUST be explicitly selected.
 
-This document specifies **ADIK v1.0.0**. Implementations MUST declare which version of this standard they target.
+## 3. Completed-adik contract
 
----
+A completed adik MUST contain the generated SDK source and package metadata,
+`contracts/registry.json` (or another manifest-declared JSON registry), at least one
+native implementation skill for every SDK language, runnable examples, implementation
+references, and `adik.manifest.json`. It MUST pass the
+[completed bundle contract](bundle-contract.md).
 
-## 4. Conformance Levels
-
-An implementation declares conformance at exactly one level. Higher levels are strict supersets.
+The manifest declares schemaVersion 2 and binds SDK declarations and skill
+`metadata.sdk-version` fields to one bundle release version. SDK source code MUST be included;
+a remote package URL alone is insufficient. All declared artifact paths MUST be
+relative, present, and inside the bundle. Symlinks are excluded. The file inventory
+MUST match the payload exactly, using SHA-256 digests. Hashes detect drift, not publisher identity.
 
-| Level | Name | Requirements |
-|---|---|---|
-| **1** | **Core** | Registry (`Registry.md`) + Codebase Analyst Agent + Builder Agent + Tier-1 SDK Builder Skill |
-| **2** | **Extended** | Level 1 + Registry Validator Skill + SDK Consumer Skill + Self-Embedding (`adik-embed.py`) + Eject (`adik-eject.py`) |
-| **3** | **Full** | Level 2 + Tier-2 Language Support + Vectorize Skill + MCP Server + CI/CD Headless Mode (`nonInteractive: true`) |
+Framework version, manifest schema version, and individual bundle release version
+are distinct. A bundle generated with ADIK 2.0 may have release version 1.0.0.
 
-An implementation MUST satisfy every requirement of its declared level.
+## 4. Registry
 
----
+The canonical JSON registry contains `schemaVersion: 2`, `metadata`, and `symbols`.
+Metadata MUST contain nonempty strings: `name`, `version`, `projectType`,
+`sourceLanguage`, `lastAnalysed`, and `lastAnalysedCommit`. `projectType` is `api`,
+`service`, or `library`. The source revision MUST match the completed-bundle manifest.
 
-## 5. Registry Format Specification
+Each symbol MUST have a unique nonempty `id`, a supported `kind`, `name`, `namespace`,
+and `signature`. Kinds are function, class, interface, enum, schema, endpoint, and
+type. Descriptions, parameters, return types, errors, source locations, and behavioral
+constraints SHOULD supply implementation knowledge. A completed registry MUST have
+at least one symbol. Implementations MAY add fields needed for their tool/library.
 
-### 5.1 Section Markers
+Producer compatibility readers support legacy Markdown metadata, YAML symbol blocks,
+and simple symbol tables. Required section markers must be unique and ordered.
+Explicit `registryPath` takes precedence; otherwise a completed manifest or canonical
+JSON registry is used. A legacy index is active only when partitioned mode is declared.
+An unused index template does not activate partitioning. Partition identities and
+source revisions must agree; IDs are unique across all partitions.
 
-Every machine-managed section MUST be delimited by guard markers:
+## 5. Implementation skills
 
-```html
-<!-- ADIK:<SECTION>:START -->
-<!-- Entries are auto-generated by the Codebase Analyst Agent. Do not edit manually. -->
-…content…
-<!-- ADIK:<SECTION>:END -->
-```
-
-### 5.2 Required Sections
-
-A conforming Registry MUST contain these sections in order:
+Generated consumer skills MUST use `SKILL.md` with name and description frontmatter plus `metadata.sdk-version`. Portable generated descriptions are single-line strings. The skill MUST
+identify its SDK and version, route capabilities to exact references and symbols,
+explain configuration and lifecycle, provide runnable examples, describe error
+handling and limitations, and define verification steps.
 
-| Marker `<SECTION>` | Section Title | Purpose |
-|---|---|---|
-| *(YAML frontmatter)* | Project Metadata | Project identity and configuration |
-| `ENDPOINTS` | Endpoints | API routes / RPC methods |
-| `CLASSES` | Classes | Class definitions |
-| `INTERFACES` | Interfaces and Types | Interfaces, type aliases, protocols |
-| `SCHEMAS` | Schemas | JSON / OpenAPI / Protobuf schemas |
-| `ENUMS` | Enumerations | Enum types |
-| `FUNCTIONS` | Functions and Methods | Standalone functions and exported methods |
-| `ERRORS` | Error Catalogue | Error and exception types |
-| *(table)* | Changelog | Dated change log |
+The manifest MUST list each skill's SDK languages, symbol IDs, references, and examples.
+The helper checks these declarations. SDK semantics and the quality of the instructions
+require SDK tests and representative consumer exercises; a structural pass alone
+MUST NOT be reported as proof of correct integration.
 
-### 5.3 Project Metadata
+## 6. Consumer workflow
 
-The Registry MUST begin with a YAML metadata block:
+The consumer agent MUST use the bundled producer contract as its library knowledge.
+It SHOULD inspect the application's manifests, conventions, composition root, and
+relevant call sites to select and adapt a recipe. The user's implementation request
+authorizes the appropriate application edits. Producer source-preservation rules do
+not prohibit these requested consumer changes.
 
-```yaml
-name: ""                    # project name
-version: ""                 # project version
-projectType: ""             # "api" | "service" | "library"
-sourceLanguage: ""          # primary language of the source project
-lastAnalysed: ""            # ISO-8601 timestamp
-lastAnalysedCommit: ""      # full Git SHA
-sdkLanguages:
-  - typescript
-  - python
-  - csharp
-vectors:
-  bundled: false
-  storeUri: ""
-  lastVectorised: ""
-  embeddingModel: ""
-```
+The consumer MUST keep producer contracts and generated SDK files distinct from
+application integration code. It MUST report checks actually run and unresolved
+requirements. It SHOULD load a capability index first, then task-specific references.
 
-The fields `name`, `version`, `projectType`, `sourceLanguage`, `lastAnalysed`, and `lastAnalysedCommit` are REQUIRED.
+## 7. Registration and removal
 
-### 5.4 Symbol Entry Format
+Registration MUST preserve unrelated project instructions and files. The reference
+installer copies the entire completed adik under `.adik/<id>/`, creates a native
+client adapter, and appends a package-specific context block. Ownership receipts
+record files and hashes. Removal MUST be restricted to owned files and MUST preserve
+modified or additional host files. The reference consumer remover refuses a removal
+when recorded files or the owned context block have changed.
 
-Each symbol within a section MUST conform to this schema:
+Producer toolkit removal likewise uses a deployment receipt. Legacy installations
+without ownership evidence require manual review. Generic directory names such as
+`agents/` and `skills/` never prove ownership.
 
-```yaml
-id: string            # unique stable identifier (e.g. "fn:getUserById")
-kind: string          # function | class | interface | enum | schema | endpoint | type
-name: string          # canonical name as it appears in source
-namespace: string     # module / package / namespace path
-signature: string     # full type signature (language-agnostic)
-description: string   # one-sentence description
-parameters:
-  - name: string
-    type: string
-    required: boolean
-    description: string
-returns:
-  type: string
-  description: string
-deprecated: boolean
-since: string         # version or commit when introduced
-tags: [string]
-```
+## 8. Optional integrations
 
-The fields `id`, `kind`, `name`, `namespace`, and `signature` are REQUIRED. All others are RECOMMENDED.
+MCP MAY expose deterministic helpers and instruction payloads for the host agent.
+Vector retrieval and scheduled refresh MAY be provided by the developer's environment.
+Neither a built-in model runner nor a hosted execution service is required for conformance.
+The base contract is a completed SDK-and-agentic-elements handoff.
 
-> **Spec traceability convention:** When integrating with specification-driven workflows (e.g., [GitHub Spec Kit](https://github.com/github/spec-kit)), use the `tags` field with a `spec:` prefix to link symbols back to their originating feature specification — for example, `tags: ["spec:001-create-taskify"]`. This enables traceability from Registry symbols through to requirements without requiring a schema change.
+## 9. Verification
 
-### 5.5 Changelog Table
+Verify registry structure, skill metadata and references, bundle inventory, SDK
+build/import behavior, and representative consumer use. A fresh-agent exercise SHOULD
+provide only the completed bundle and the consumer application. Record skill selection,
+correctness, application-convention adherence, context reads, and unnecessary searches.
 
-```markdown
-| Date | Commit SHA | Change Summary |
-|---|---|---|
-| 2025-01-15 | abc1234 | Registry initialised |
-```
-
-### 5.6 Partitioned Registry
-
-When the Registry exceeds **500 symbols** or **200 KB**, it SHOULD be partitioned.
-
-| File | Purpose |
-|---|---|
-| `Registry.index.md` | Master index with project metadata and partition table |
-| `Registry.<domain>.md` | One file per top-level namespace domain (lowercase kebab-case) |
-| `Registry.shared.md` | Types referenced by multiple domains |
-
-The master index MUST include a `registryMode: "partitioned"` metadata field and a partition table:
-
-```markdown
-<!-- ADIK:PARTITIONS:START -->
-| Domain | File | Symbols | Last Updated |
-|---|---|---|---|
-| users | `Registry.users.md` | 127 | 2025-01-15 |
-| payments | `Registry.payments.md` | 89 | 2025-01-15 |
-| shared | `Registry.shared.md` | 34 | 2025-01-15 |
-<!-- ADIK:PARTITIONS:END -->
-```
-
-Each partition file MUST use the same section markers and symbol entry format as a monolithic Registry.
-
----
-
-## 6. Agent Protocol
-
-### 6.1 Frontmatter
-
-Every Agent file MUST begin with a heading and a blockquote frontmatter:
-
-```markdown
-# <Agent Name> — `<file path>`
-
-> **Role:** <role description>
-> **Type:** <Orchestrator Agent | Analysis Agent>
-> **Invoked by:** `<invoking file>`
-> **Delegates to:** `<skill-1>`, `<skill-2>`, …
-```
-
-### 6.2 Requirements
-
-An ADIK-conforming Agent:
-
-1. MUST be independently readable by an LLM agent without loading the full repository.
-2. MUST declare its inputs (what it reads), outputs (what it writes), execution protocol (step sequence), and error-handling behaviour.
-3. MUST use the Registry as its single source of truth for symbols — it MUST NOT invent types not present in the Registry.
-4. MUST NOT modify source code. Agents generate SDK output and agentic artifacts only.
-
----
-
-## 7. Skill Protocol
-
-### 7.1 Frontmatter
-
-Every Skill file MUST begin with:
-
-```markdown
-# <Skill Name> — `<file path>`
-
-> **Role:** <role description>
-> **Type:** Skill
-> **Invoked by:** `<agent file>`
-> **Reads from:** `Registry.md`
-```
-
-### 7.2 Requirements
-
-An ADIK-conforming Skill:
-
-1. MUST have a single responsibility (one skill = one focused task).
-2. MUST read symbol data exclusively from the Registry — never from source code directly.
-3. MUST output generated code to `sdk/<language>/` (or the configured `outputDir`).
-4. MUST declare an inputs table listing all parameters it accepts.
-5. MUST NOT delegate to other Skills.
-
-### 7.3 Inputs Table Format
-
-```markdown
-| Input | Type | Description |
-|---|---|---|
-| `registry` | path | Path to `Registry.md` or partition file |
-| `language` | enum | Target language identifier |
-| `projectType` | enum | `api` \| `service` \| `library` |
-| `outputDir` | path | Root output path (default: `./sdk`) |
-| `packageName` | string | Optional package name override |
-| `packageVersion` | string | Optional version override |
-```
-
----
-
-## 8. Guard Marker Protocol
-
-### 8.1 Format
-
-Context files use a single pair of guard markers for idempotent self-embedding:
-
-```html
-<!-- ADIK:START -->
-…ADIK-generated content…
-<!-- ADIK:END -->
-```
-
-Registry files use section-specific markers (see §5.1).
-
-### 8.2 Target Files
-
-Self-embedding MUST target exactly three context files:
-
-| File | Consumer |
-|---|---|
-| `.github/copilot-instructions.md` | GitHub Copilot |
-| `CLAUDE.md` | Claude / Anthropic sessions |
-| `agents.md` | Generic agentic frameworks |
-
-### 8.3 Upsert Rules
-
-1. If no markers exist in the target file: APPEND the block with a `\n\n` separator.
-2. If markers exist: REPLACE all content between markers (inclusive of markers).
-3. The operation MUST be idempotent — repeated runs MUST NOT duplicate content.
-4. Only `scripts/adik-embed.py` (or an equivalent conforming tool) SHOULD manage these blocks. Agents MUST NOT edit context files directly.
-
----
-
-## 9. Bundle Specification
-
-### 9.1 Required Files
-
-A valid ADIK bundle MUST contain:
-
-```
-ADIK.md
-ADIK.orchestrator.md
-Registry.md
-agents/
-  builder.agent.md
-  codebase-analyst.agent.md
-skills/
-  sdk-builder.skill.md
-  registry-validator.skill.md
-  sdk-consumer.skill.md
-```
-
-### 9.2 Optional Files
-
-A bundle MAY also contain:
-
-```
-Registry.index.md
-skills/
-  sdk-builder-tier2.skill.md
-  vectorize.skill.md
-scripts/
-  adik-embed.py
-  adik-eject.py
-mcp/
-  adik-mcp-server.md
-```
-
-### 9.3 Excluded Files
-
-The following files MUST NOT be included in a deployed bundle:
-
-| File | Reason |
-|---|---|
-| `ADIKbuilder.md` | Framework orchestrator — source repo only |
-| `docs/` | Documentation — source repo only |
-| `CLAUDE.md` (source version) | Source-repo context — target repos get their own via embed |
-| `agents.md` (source version) | Source-repo context — target repos get their own via embed |
-| `.github/copilot-instructions.md` (source version) | Source-repo context — target repos get their own via embed |
-
----
-
-## 10. Type Mapping Standard
-
-Implementations MUST use the following canonical type mappings when generating SDK code.
-
-### 10.1 Tier-1 Languages
-
-| Registry Type | TypeScript | Python | C# |
-|---|---|---|---|
-| `string` | `string` | `str` | `string` |
-| `number` | `number` | `float` | `double` |
-| `integer` | `number` | `int` | `int` |
-| `boolean` | `boolean` | `bool` | `bool` |
-| `null` | `null` | `None` | `null` |
-| `void` | `void` | `None` | `void` |
-| `any` | `unknown` | `Any` | `object` |
-| `object` | `Record<string, unknown>` | `dict[str, Any]` | `Dictionary<string, object>` |
-| `array<T>` | `T[]` | `list[T]` | `List<T>` |
-| `Record<K,V>` | `Record<K, V>` | `dict[K, V]` | `Dictionary<K, V>` |
-| `Map<K,V>` | `Map<K, V>` | `dict[K, V]` | `Dictionary<K, V>` |
-| `Set<T>` | `Set<T>` | `set[T]` | `HashSet<T>` |
-| `Promise<T>` | `Promise<T>` | `Awaitable[T]` | `Task<T>` |
-| `Date` | `Date` | `datetime` | `DateTimeOffset` |
-| `UUID` | `string` | `uuid.UUID` | `Guid` |
-| `Buffer` | `Uint8Array` | `bytes` | `byte[]` |
-| `optional<T>` | `T \| undefined` | `T \| None` | `T?` |
-
-### 10.2 Tier-2 Languages
-
-| Registry Type | Go | Java | Kotlin |
-|---|---|---|---|
-| `string` | `string` | `String` | `String` |
-| `number` | `float64` | `double` | `Double` |
-| `integer` | `int` | `int` / `Integer` | `Int` |
-| `boolean` | `bool` | `boolean` / `Boolean` | `Boolean` |
-| `null` | `*T` (pointer) | `null` | nullable `T?` |
-| `void` | *(none)* | `void` | `Unit` |
-| `any` | `any` | `Object` | `Any` |
-| `object` | `map[string]any` | `Map<String, Object>` | `Map<String, Any>` |
-| `array<T>` | `[]T` | `List<T>` | `List<T>` |
-| `Record<K,V>` | `map[K]V` | `Map<K, V>` | `Map<K, V>` |
-| `Set<T>` | `map[T]struct{}` | `Set<T>` | `Set<T>` |
-| `Promise<T>` | `(T, error)` | `CompletableFuture<T>` | `Deferred<T>` |
-| `Date` | `time.Time` | `java.time.Instant` | `java.time.Instant` |
-| `UUID` | `uuid.UUID` | `UUID` | `UUID` |
-| `Buffer` | `[]byte` | `byte[]` | `ByteArray` |
-
----
-
-## 11. Configuration Schema
-
-The optional `adik.config.json` file controls runtime behaviour. All fields have defaults; the file itself is optional.
-
-```jsonc
-{
-  // --- Project ---
-  "projectType": "auto",                  // "auto" | "api" | "service" | "library"
-  "sdkLanguages": ["typescript", "python", "csharp"],
-
-  // --- Tier-2 (opt-in) ---
-  "tier2Languages": [],                   // e.g. ["go", "java", "kotlin"]
-  "tier2Options": {
-    "go":     { "modulePath": "", "goVersion": "1.21" },
-    "java":   { "groupId": "", "artifactId": "", "javaVersion": "17", "buildTool": "maven" },
-    "kotlin": { "groupId": "", "artifactId": "", "javaVersion": "17", "buildTool": "gradle" }
-  },
-
-  // --- Paths ---
-  "outputDir": "./sdk",
-  "registryPath": "./Registry.md",
-  "registryMode": "auto",                 // "auto" | "monolithic" | "partitioned"
-  "partitionThresholdSymbols": 500,
-  "partitionThresholdBytes": 204800,       // 200 KB
-
-  // --- Vectors ---
-  "vectors": {
-    "bundled": false,
-    "autoDetect": true,
-    "preferVectors": true,
-    "storeUri": "",
-    "embeddingModel": "auto",
-    "chunkStrategy": "symbol"              // "symbol" | "file" | "sliding-window"
-  },
-
-  // --- Analysis ---
-  "includePatterns": ["src/**/*"],
-  "excludePatterns": ["**/*.test.*", "**/*.spec.*"],
-
-  // --- Runtime ---
-  "syncOnCommit": true,
-  "nonInteractive": false,                 // true = CI/CD headless mode
-  "startupMode": "blanket",               // "blanket" | "guided"
-  "mcpPort": 3100,
-  "vectorizationAdvisoryDismissed": false
-}
-```
-
-| Field | Required | Default | Notes |
-|---|---|---|---|
-| `projectType` | No | `"auto"` | `"auto"` triggers inference by the Codebase Analyst |
-| `sdkLanguages` | No | `["typescript", "python", "csharp"]` | Tier-1 only |
-| `tier2Languages` | No | `[]` | MUST be explicitly set to enable tier-2 generation |
-| `outputDir` | No | `"./sdk"` | Root directory for all generated SDK output |
-| `registryMode` | No | `"auto"` | `"auto"` partitions when thresholds are exceeded |
-| `nonInteractive` | No | `false` | Set `true` for CI/CD pipelines |
-
----
-
-## 12. Versioning Rules
-
-ADIK follows [Semantic Versioning 2.0.0](https://semver.org/).
-
-| Change Type | Bump | Examples |
-|---|---|---|
-| New agent or skill added | **Patch** | Add a linting skill, add a new analysis agent |
-| Registry schema change | **Minor** | New required field in symbol entries, new section |
-| Backward-incompatible `ADIK.md` or `ADIK.orchestrator.md` change | **Major** | Workflow reordering, removed agent contract, renamed markers |
-
-Both `ADIK.md`, `ADIK.orchestrator.md`, and `ADIKbuilder.md` MUST declare the same version. When a major version is bumped, all agents, skills, and the Registry format MUST be reviewed for compatibility.
-
----
-
-## 13. Compliance Checklist
-
-Use this checklist to verify conformance. Mark each item that your implementation satisfies.
-
-### Level 1 — Core
-
-| # | Requirement | Status |
-|---|---|---|
-| 1.1 | `Registry.md` exists with all required sections and markers (§5) | ☐ |
-| 1.2 | Project Metadata contains all REQUIRED fields (§5.3) | ☐ |
-| 1.3 | Symbol entries conform to the entry schema (§5.4) | ☐ |
-| 1.4 | Codebase Analyst Agent exists and conforms to Agent Protocol (§6) | ☐ |
-| 1.5 | Builder Agent exists and conforms to Agent Protocol (§6) | ☐ |
-| 1.6 | Tier-1 SDK Builder Skill exists and conforms to Skill Protocol (§7) | ☐ |
-| 1.7 | Type mappings match the Tier-1 table (§10.1) | ☐ |
-| 1.8 | Generated SDK output goes to `sdk/<language>/` | ☐ |
-| 1.9 | No source code is modified by any agent or skill | ☐ |
-
-### Level 2 — Extended
-
-| # | Requirement | Status |
-|---|---|---|
-| 2.1 | All Level 1 requirements met | ☐ |
-| 2.2 | Registry Validator Skill exists and gates SDK generation | ☐ |
-| 2.3 | SDK Consumer Skill generates examples and boilerplate | ☐ |
-| 2.4 | `adik-embed.py` implements Guard Marker Protocol (§8) | ☐ |
-| 2.5 | Self-embedding targets all three context files (§8.2) | ☐ |
-| 2.6 | Upsert is idempotent (§8.3) | ☐ |
-| 2.7 | `adik-eject.py` cleanly removes all ADIK artifacts | ☐ |
-| 2.8 | Eject preserves non-ADIK content in context files | ☐ |
-
-### Level 3 — Full
-
-| # | Requirement | Status |
-|---|---|---|
-| 3.1 | All Level 2 requirements met | ☐ |
-| 3.2 | Tier-2 SDK Builder Skill supports Go, Java, and Kotlin | ☐ |
-| 3.3 | Tier-2 is opt-in via `tier2Languages` in config (§11) | ☐ |
-| 3.4 | Type mappings match the Tier-2 table (§10.2) | ☐ |
-| 3.5 | Vectorize Skill supports `symbol`, `file`, and `sliding-window` strategies | ☐ |
-| 3.6 | MCP Server exposes ADIK capabilities | ☐ |
-| 3.7 | `nonInteractive: true` enables headless CI/CD execution | ☐ |
-| 3.8 | Bundle conforms to §9 (required files present, excluded files absent) | ☐ |
-
----
-
-*ADIK Standard Specification v1.0.0 — Copyright © 2025 ADIK Contributors. Licensed under the repository's governing license.*
+See the [reference exercise](../examples/reference-adik.md) and
+[consumer evaluation protocol](../examples/consumer-evaluation.md).

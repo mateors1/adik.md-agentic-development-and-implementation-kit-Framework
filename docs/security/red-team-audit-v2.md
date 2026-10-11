@@ -1,3 +1,6 @@
+> Historical analysis retained for context. Current behavior is specified in the
+> [v2 standard](../specification/standard.md) and [migration guide](../getting-started/migration-v2.md).
+
 # ADIK Red-Team Audit v2 — Post-Implementation Review
 
 > **Audit date:** 2026-03-14
@@ -69,7 +72,7 @@ specific model before enabling `syncOnCommit: true`.
 propagate silently into generated SDK code.
 
 **Mitigation implemented:**
-- `skills/registry-validator.skill.md` defines a three-level validation gate (Structural
+- `skills/registry-validator/SKILL.md` defines a three-level validation gate (Structural
   Integrity, Type Consistency, Semantic Plausibility).
 - The Builder Agent now invokes the validator before every SDK generation run.
 - Blocking violations halt generation and write a `sdk/VALIDATION_REPORT.md`.

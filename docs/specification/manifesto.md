@@ -1,108 +1,32 @@
-# ADIK Manifesto — The Philosophy of Agentic SDK Generation
+# The ADIK thesis
 
-> **Part of:** [ADIK — Agentic Development and Implementation Kit](../README.md)
-> **See also:** [`ADIK.md`](../ADIK.md) (standard definition), [`ADIK.orchestrator.md`](../ADIK.orchestrator.md) (operational orchestrator), [`ADIKbuilder.md`](../ADIKbuilder.md) (framework orchestrator)
+Developers should be able to give an agent both a usable SDK and the knowledge needed
+to implement it well. An adik carries these together: generated SDK code, skills,
+contracts, examples, and implementation context.
 
----
+The tool or library developer invokes ADIK through a coding agent. Producer skills
+extract public contracts, generate SDK code, and create the matching agentic elements.
+The complete bundle carries that understanding to another environment.
 
-## The Problem
+The user asks their own agent to implement the adik in their application. It starts
+with the library's implementation knowledge, then inspects the application where it
+needs to integrate. Broad library rediscovery should become unnecessary for documented
+capabilities.
 
-Software teams spend enormous effort writing and maintaining SDKs, client libraries, and consumption boilerplate — work that is mechanical, error-prone, and chronically behind the actual service. Every time an endpoint changes, every generated type drifts. Every time a new developer joins, they spend days unwrapping how to call the API.
+## Principles
 
-The documentation says one thing. The codebase says another. The SDK says a third. Entropy wins.
+- **Code and knowledge travel together.** A release includes the actual generated SDK
+  and instructions that match its behavior and version.
+- **Implementation is a product feature.** Configuration, lifecycle, examples, errors,
+  and verification are part of the deliverable.
+- **Context has a purpose.** A capability index directs the agent to the recipe and
+  contracts needed for the task. Source references support deeper investigation.
+- **Ownership is clear.** Producers own library contracts; consumers own application
+  integration decisions and source changes.
+- **Skills compose with host agents.** ADIK supplies the procedures and handoff. The
+  agent already chosen by the developer or user performs the work.
+- **Claims follow evidence.** Structural validation, SDK behavior checks, and consumer
+  exercises establish different properties and should be reported accurately.
 
----
-
-## The Inversion
-
-**ADIK inverts this.** The source of truth is the *codebase*, not a wiki or a hand-maintained SDK.
-
-A team of specialised agents reads your code, understands its structure, and generates complete, publish-ready SDK packages in TypeScript, Python, and C#. When the codebase changes, the SDK changes. When a new developer joins, the boilerplate is already there.
-
-The developer writes code. ADIK writes the SDK.
-
----
-
-## Five Core Principles
-
-### 1. One Source of Truth
-
-Every type, schema, and endpoint is declared once in `Registry.md` and generated into all languages from that single definition. There is no duplication. There is no drift.
-
-> *If it isn't in the Registry, it doesn't exist in the SDK.*
-
-### 2. Inference Over Configuration
-
-Framework hints, project type, vector capabilities — ADIK discovers these automatically. It reads `architecture.md`, scans package manifests, and inspects existing agent definitions to understand the environment before writing a single line of generated code.
-
-You should only need to configure what ADIK cannot know.
-
-> *Convention is the default. Configuration is the escape hatch.*
-
-### 3. Context Cleanliness
-
-Vectorization, framework-specific logic, and infrastructure concerns live in dedicated subagents and subskills. The orchestrator stays lean and readable in any context window.
-
-A well-designed agentic system should be understandable at a glance. Every file does exactly one thing, and does it completely.
-
-> *Separation of concerns applies to agents, not just code.*
-
-### 4. Graceful Degradation
-
-Every feature is additive. Vector mode, MCP server, framework-specific boilerplate — all optional. The core pipeline works with zero configuration.
-
-You do not need a vector database to benefit from ADIK. You do not need an MCP client. You do not even need a config file. Run the two agents and you have an SDK.
-
-> *The floor is low. The ceiling is high.*
-
-### 5. Composability
-
-ADIK is designed to be one layer in a larger pipeline, not the whole pipeline. It consumes what other tools produce and produces what other tools consume. Specification frameworks feed it code. CI/CD systems invoke it automatically. Package registries distribute its output.
-
-This is a deliberate architectural choice. ADIK does not manage requirements. It does not own the deployment pipeline. It does not prescribe how you write code. It occupies one layer — *contract → SDK* — and does it completely. Other tools own their layers, and ADIK integrates cleanly with any of them.
-
-> *A good tool does one thing well and composes with everything else.*
-
----
-
-## What ADIK Is Not
-
-- **Not a code generator that replaces developers.** ADIK generates boilerplate and SDK wrappers so developers can focus on business logic.
-- **Not a documentation tool.** ADIK builds `Registry.md` as a machine-readable artifact, not a prose document.
-- **Not a lock-in.** Every generated SDK package is self-contained and can be published independently of ADIK. You can adopt ADIK incrementally and remove it without losing your SDKs.
-- **Not a runtime dependency.** ADIK is a development-time tool. Nothing it generates requires ADIK to be present at runtime.
-
----
-
-## On Agentic Systems
-
-ADIK is itself built as an agentic system — a collection of cooperating agents, each with a clear role and well-defined contracts, coordinated by an orchestrator.
-
-This is not an accident. The same principles that make ADIK useful for SDK generation — single source of truth, separation of concerns, graceful degradation — are the same principles that make any agentic system maintainable and trustworthy.
-
-The framework eats its own cooking.
-
----
-
-## The Standard
-
-ADIK is designed to be a **publishable standard**, not just a tool. The contracts between orchestrator, agents, skills, and registry are documented precisely enough that anyone can implement a compatible ADIK framework from scratch — see [`docs/examples/ADIKBuilderExample.md`](../examples/ADIKBuilderExample.md) for the complete step-by-step guide.
-
-Standardisation matters because it enables:
-
-- **Interoperability** — multiple ADIK-compatible tools can share a Registry format.
-- **Community** — teams can share agent definitions, skills, and registry schemas.
-- **Trust** — a known, documented standard is easier to audit and reason about than a bespoke automation script.
-
----
-
-## Related Reading
-
-| Document | Purpose |
-|---|---|
-| [`README.md`](../README.md) | Overview, quick start, repository layout |
-| [`ADIK.md`](../ADIK.md) | Standard definition — what ADIK is, its terminology, and contracts |
-| [`ADIK.orchestrator.md`](../ADIK.orchestrator.md) | Operational orchestrator — the brain inside every adik |
-| [`ADIKbuilder.md`](../ADIKbuilder.md) | Factory — produces specialized adiks |
-| [`docs/examples/ADIKBuilderExample.md`](../examples/ADIKBuilderExample.md) | Step-by-step guide to building your own ADIK from scratch |
-| [`Registry.md`](../Registry.md) | Symbol registry format specification |
+Optional MCP, vector search, languages, and distribution integrations extend this
+thesis. The essential outcome remains a complete adik that another agent can implement.

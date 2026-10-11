@@ -4,7 +4,8 @@
 # named "<org>/<reponame>-ADIK" whenever a new release is published or when
 # manually triggered.
 #
-# The resulting repository contains only the deployable bundle:
+# This distributes the producer toolkit, not a completed SDK-and-skills adik.
+# The resulting repository contains only the deployable toolkit:
 #   ADIK.md, Registry.md, Registry.index.md, agents/, skills/, mcp/, scripts/
 #
 # Source-only files (ADIKbuilder.md, docs/, CLAUDE.md, agents.md, .github/)
@@ -28,7 +29,7 @@
 # Non-interactive / headless safe:
 #   ADIK_NON_INTERACTIVE=true is set in the environment so no startup prompt blocks CI.
 
-name: ADIK Self-Deploy
+name: ADIK Producer Toolkit Distribution
 
 on:
   release:
@@ -262,9 +263,9 @@ jobs:
           echo ""
           echo "Required files:"
           for f in ADIK.md Registry.md Registry.index.md agents/builder.agent.md \
-                   agents/codebase-analyst.agent.md skills/sdk-builder.skill.md \
-                   skills/sdk-consumer.skill.md skills/vectorize.skill.md \
-                   skills/registry-validator.skill.md skills/sdk-builder-tier2.skill.md \
+                   agents/codebase-analyst.agent.md skills/sdk-builder/SKILL.md \
+                   skills/sdk-consumer/SKILL.md skills/vectorize/SKILL.md \
+                   skills/registry-validator/SKILL.md skills/sdk-builder-tier2/SKILL.md \
                    mcp/adik-mcp-server.md scripts/adik-embed.py scripts/adik-eject.py; do
             STATUS=$(gh api "repos/${TARGET_ORG}/${BUNDLE_REPO}/contents/${f}" \
               --jq '.name' 2>/dev/null && echo "OK" || echo "MISSING")
@@ -278,7 +279,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Post deployment summary
         run: |
-          echo "## ADIK Bundle Deployed 🚀" >> "$GITHUB_STEP_SUMMARY"
+          echo "## ADIK Producer Toolkit Deployed 🚀" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"

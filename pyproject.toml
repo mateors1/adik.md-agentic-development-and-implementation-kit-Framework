@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "adik-mcp-server"
-version = "1.0.0"
+version = "2.0.0"
 description = "MCP server for the ADIK framework — registry queries, SDK generation, and codebase analysis tools for any MCP-compatible AI agent"
 readme = "README.pypi.md"
 requires-python = ">=3.10"
@@ -33,6 +33,7 @@ classifiers = [
 ]
 dependencies = [
     "mcp>=1.0.0",
+    "PyYAML>=6,<7",
 ]
 
 [project.urls]
@@ -48,7 +49,7 @@ adik-mcp-server = "adik_mcp_server:main"
 # ---------------------------------------------------------------------------
 
 [tool.setuptools]
-py-modules = ["adik_mcp_server"]
+py-modules = ["adik_mcp_server", "adik_contracts"]
 
 [tool.setuptools.package-dir]
 "" = "mcp"

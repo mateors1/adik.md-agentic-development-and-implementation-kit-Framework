@@ -1,6 +1,7 @@
 import os
+from pathlib import Path
 
-base = r"c:\Users\mateo\OneDrive\Documentos\GitHub\adik.md-agentic-development-and-implementation-kit-Framework"
+base = Path(__file__).resolve().parent
 files = [
     "ADIK.md",
     "ADIK.orchestrator.md",
@@ -8,11 +9,11 @@ files = [
     "Registry.index.md",
     "agents/builder.agent.md",
     "agents/codebase-analyst.agent.md",
-    "skills/sdk-builder.skill.md",
-    "skills/sdk-builder-tier2.skill.md",
-    "skills/sdk-consumer.skill.md",
-    "skills/registry-validator.skill.md",
-    "skills/vectorize.skill.md",
+    "skills/sdk-builder/SKILL.md",
+    "skills/sdk-builder-tier2/SKILL.md",
+    "skills/sdk-consumer/SKILL.md",
+    "skills/registry-validator/SKILL.md",
+    "skills/vectorize/SKILL.md",
     "scripts/adik-embed.py",
     "scripts/adik-eject.py",
     "mcp/adik-mcp-server.md",
@@ -49,7 +50,7 @@ print()
 categories = {
     "Standard + Orchestrator": ["ADIK.md", "ADIK.orchestrator.md"],
     "Agents": ["agents/builder.agent.md", "agents/codebase-analyst.agent.md"],
-    "Skills": ["skills/sdk-builder.skill.md", "skills/sdk-builder-tier2.skill.md", "skills/sdk-consumer.skill.md", "skills/registry-validator.skill.md", "skills/vectorize.skill.md"],
+    "Skills": ["skills/sdk-builder/SKILL.md", "skills/sdk-builder-tier2/SKILL.md", "skills/sdk-consumer/SKILL.md", "skills/registry-validator/SKILL.md", "skills/vectorize/SKILL.md"],
     "Scripts (Python)": ["scripts/adik-embed.py", "scripts/adik-eject.py"],
     "Registry templates": ["Registry.md", "Registry.index.md"],
     "MCP": ["mcp/adik-mcp-server.md"],

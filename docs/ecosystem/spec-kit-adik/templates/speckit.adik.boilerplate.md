@@ -26,7 +26,7 @@ Invokes the ADIK **SDK Consumer Skill** to:
 
 Read the following files:
 - `ADIK.orchestrator.md` — operational orchestrator
-- `skills/sdk-consumer.skill.md` — the skill you will invoke
+- `skills/sdk-consumer/SKILL.md` — the skill you will invoke
 - `scripts/adik-embed.py` — self-embedding script
 
 ### Step 2 — Detect Framework

@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0] — Unreleased
+
+- Define the producer flow: generate SDK code and matching agentic elements together.
+- Define the consumer flow: implement the completed adik in application code.
+- Add native skills, a completed manifest, JSON registry schemas, shared validation,
+  packaging, registration, and ownership-aware removal.
+- Separate producer architecture from consumer framework compatibility.
+- Repair the standard linter, active registry selection, and MCP validation handoff.
+- Add a runnable reference bundle, consumer fixtures, diagrams, migration guide,
+  updated explanatory artifacts, and a live-agent evaluation protocol.
+- Breaking: completed adiks must meet the v2 manifest contract. See the migration guide.
+
 All notable changes to the ADIK framework are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
@@ -7,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## Previous unreleased notes (1.x)
 
 ### Added
 
@@ -74,15 +86,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Skills
 
-- **`skills/sdk-builder.skill.md`** — Tier-1 SDK generation (TypeScript, Python, C#).
-- **`skills/sdk-builder-tier2.skill.md`** — Tier-2 SDK generation (Go, Java, Kotlin — opt-in via
+- **`skills/sdk-builder/SKILL.md`** — Tier-1 SDK generation (TypeScript, Python, C#).
+- **`skills/sdk-builder-tier2/SKILL.md`** — Tier-2 SDK generation (Go, Java, Kotlin — opt-in via
   `tier2Languages` in `adik.config.json`). Includes `reactiveProfile` for Java and documented
   Known Limitations for all tier-2 languages.
-- **`skills/sdk-consumer.skill.md`** — Framework-idiomatic consumption boilerplate with auto-inferred
+- **`skills/sdk-consumer/SKILL.md`** — Framework-idiomatic consumption boilerplate with auto-inferred
   `frameworkHints` (React, NestJS, FastAPI, ASP.NET, etc.).
-- **`skills/registry-validator.skill.md`** — Mandatory three-level validation gate (Structural
+- **`skills/registry-validator/SKILL.md`** — Mandatory three-level validation gate (Structural
   Integrity, Type Consistency, Semantic Plausibility) before any SDK generation.
-- **`skills/vectorize.skill.md`** — Optional vector embedding subskill (loaded on demand when a
+- **`skills/vectorize/SKILL.md`** — Optional vector embedding subskill (loaded on demand when a
   vector DB is detected).
 
 ### Scripts

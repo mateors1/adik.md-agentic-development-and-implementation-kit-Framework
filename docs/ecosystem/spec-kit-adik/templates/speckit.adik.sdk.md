@@ -21,8 +21,8 @@ Invokes the ADIK **Builder Agent** to:
 Read the following files:
 - `ADIK.orchestrator.md` — operational orchestrator
 - `agents/builder.agent.md` — the agent you will invoke
-- `skills/registry-validator.skill.md` — validation rules
-- `skills/sdk-builder.skill.md` — tier-1 generation rules
+- `skills/registry-validator/SKILL.md` — validation rules
+- `skills/sdk-builder/SKILL.md` — tier-1 generation rules
 
 ### Step 2 — Check Configuration
 

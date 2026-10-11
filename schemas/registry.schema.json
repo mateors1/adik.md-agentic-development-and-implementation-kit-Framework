@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ADIK registry v2",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "metadata",
+    "symbols"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "projectType",
+        "sourceLanguage",
+        "lastAnalysed",
+        "lastAnalysedCommit"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lastAnalysed": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lastAnalysedCommit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projectType": {
+          "enum": [
+            "api",
+            "service",
+            "library"
+          ]
+        }
+      }
+    },
+    "symbols": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "namespace",
+          "signature"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "namespace": {
+            "type": "string",
+            "minLength": 1
+          },
+          "signature": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "function",
+              "class",
+              "interface",
+              "enum",
+              "schema",
+              "endpoint",
+              "type"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
